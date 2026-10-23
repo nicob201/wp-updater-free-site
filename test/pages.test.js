@@ -15,12 +15,12 @@ const CLICKS = ['get-started-nav', 'get-started-hero', 'get-started-mid', 'get-s
 // What each language must say, in its own words
 const SITE = 'https://wp-updater-free.vercel.app';
 const PAGES = [
-  { lang: 'en', html: EN, url: `${SITE}/`, image: `${SITE}/assets/og.png`, locale: 'en_US', counts: /counts visits and clicks with <a[^>]*>GoatCounter<\/a>, with no cookies and no personal data/, start: 'https://github.com/nicob201/wp-updater-free#quick-start',
+  { lang: 'en', html: EN, url: `${SITE}/`, image: `${SITE}/assets/og.png`, locale: 'en_US', counts: /counts visits and clicks with <a[^>]*>GoatCounter<\/a>, without cookies and without storing anything that identifies you\./, start: 'https://github.com/nicob201/wp-updater-free#quick-start',
     made: /Made for the love of it ♥ by Nicolas Boscasso/, compare: /Why not ManageWP or MainWP\?/,
     planned: /id="next"[\s\S]*Planned, not in the tool yet\./,
     untested: /cPanel, SiteGround and VPS aren't tested yet/, dump: /mysqldump or mariadb-dump/,
     key: /SSH key[^.]*Docker volume/, keyInData: /SSH key[^.]*<span class="code-inline">data<\/span> folder/ },
-  { lang: 'es', html: ES, url: `${SITE}/es/`, image: `${SITE}/assets/og-es.png`, locale: 'es_LA', counts: /cuenta visitas y clics con <a[^>]*>GoatCounter<\/a>, sin cookies ni datos personales/, start: 'https://github.com/nicob201/wp-updater-free/blob/main/README.es.md#inicio-rápido',
+  { lang: 'es', html: ES, url: `${SITE}/es/`, image: `${SITE}/assets/og-es.png`, locale: 'es_LA', counts: /cuenta visitas y clics con <a[^>]*>GoatCounter<\/a>, sin cookies y sin guardar nada que te identifique\./, start: 'https://github.com/nicob201/wp-updater-free/blob/main/README.es.md#inicio-rápido',
     made: /Desarrollado por amor al arte ♥ por Nicolas Boscasso/, compare: /¿Por qué no ManageWP o MainWP\?/,
     planned: /id="next"[\s\S]*Planeado, todavía no está en la herramienta\./,
     untested: /cPanel, SiteGround y VPS todavía no se probaron/, dump: /mysqldump o mariadb-dump/,
@@ -114,11 +114,21 @@ for (const p of PAGES) {
     assert.ok(meta('og:title') && meta('og:description') && meta('og:image:alt'));
     assert.equal(meta('og:title'), html.match(/<title>([^<]*)<\/title>/)[1]);
     assert.equal(meta('og:description'), meta('description'));
+    // The image's alt text says what's written on it, and X reads its own tag
+    assert.ok(meta('og:image:alt').startsWith(html.match(/<h1>([^<]*)<\/h1>/)[1]));
+    assert.equal(meta('twitter:image:alt'), meta('og:image:alt'));
+  });
+
+  test(`${p.lang}: every tracked click has a readable title in GoatCounter`, () => {
+    // Without one, count.js records the element's HTML, icons included
+    const tags = html.match(/<(?:a|button) [^>]*data-goatcounter-click="[^"]*"[^>]*>/g);
+    assert.equal(tags.length, CLICKS.length);
+    for (const tag of tags) assert.match(tag, /data-goatcounter-title="[A-Z][^"<]+"/, tag);
   });
 }
 
 test('the demo inside the page counts nothing by itself', () => {
-  // It's an iframe: counted as page views, every visit would count twice. Demo use is counted through the parent
+  // count.js would skip it as a frame anyway: demo use is counted through the page around it
   assert.doesNotMatch(read('demo/index.html'), /goatcounter/);
 });
 

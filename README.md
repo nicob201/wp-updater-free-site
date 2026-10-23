@@ -32,7 +32,7 @@ Then try the demo, run the tests and commit. Don't edit the copied files by hand
 
 ## Analytics
 
-The pages count visits and clicks with [GoatCounter](https://www.goatcounter.com/) (`nicob201.goatcounter.com`), without cookies. Each tracked button or link names its click in a `data-goatcounter-click` attribute, and the demo reports `demo-update` and `demo-backup` to the page around it. The demo's own page isn't counted, so a visit counts once.
+The pages count visits and clicks with [GoatCounter](https://www.goatcounter.com/) (`nicob201.goatcounter.com`), without cookies. Each tracked button or link names its click in a `data-goatcounter-click` attribute, and the demo reports `demo-update` and `demo-backup` to the page around it. The demo's own page isn't counted, so a visit counts once. GoatCounter skips `localhost`, but not Vercel's previews: to keep your own visits out, add your IP under Settings → Ignore IPs in GoatCounter.
 
 ## Tests
 
