@@ -35,6 +35,9 @@ function demoPage(html) {
     if (html.split(from).length !== 2) throw new Error(`index.html changed: "${from}" not found once. Update scripts/sync-demo.js.`);
     html = html.replace(from, () => to);
   }
+  // Any other file the page loads from the root wouldn't be in demo/
+  const left = html.match(/(?:src|href)="(\/(?!\/)[^"]*)"/);
+  if (left) throw new Error(`index.html loads ${left[1]} from the root, which demo/ doesn't have. Update scripts/sync-demo.js.`);
   return html;
 }
 

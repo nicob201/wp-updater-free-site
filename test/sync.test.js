@@ -31,6 +31,13 @@ test('a changed index.html stops the sync instead of shipping a broken demo', ()
   assert.throws(() => demoPage(SAMPLE.replace('<meta charset="utf-8">', '<meta charset="UTF-8">')), /index\.html changed/);
 });
 
+test('a page that loads another file from the root stops the sync', () => {
+  const extra = SAMPLE.replace('</body>', '<script src="/extra.js"></script>\n</body>');
+  assert.throws(() => demoPage(extra), /index\.html loads \/extra\.js from the root/);
+  // Other origins, protocol-relative URLs, data: and in-page links are fine
+  assert.doesNotThrow(() => demoPage(SAMPLE.replace('</head>', '<link rel="preconnect" href="https://fonts.gstatic.com"><script src="//cdn.example/x.js"></script><a href="#settings"></a></head>')));
+});
+
 test('it copies the page and the two state modules', () => {
   assert.deepEqual(FILES.map(f => f[1]), ['index.html', 'app.js', 'styles.css', 'state.js', 'config.js']);
   assert.deepEqual(FILES.map(f => f[0]), ['public/index.html', 'public/app.js', 'public/styles.css', 'lib/state.js', 'lib/config.js']);
