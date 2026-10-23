@@ -170,9 +170,17 @@
 
     // ---- The fake updater.sh ----
 
+    // The sites `find <sites path> -maxdepth 5 -name wp-load.php` finds; no sites path is the home folder
+    function sitesUnder(srv) {
+      const root = (srv.path || '~').replace(/^~(?=\/|$)/, `/home/${srv.user}`).replace(/(.)\/+$/, '$1');
+      const depth = path => path.slice(root.length).split('/').filter(Boolean).length + 1;   // of its wp-load.php
+      const inside = path => path === root || path.startsWith(root === '/' ? root : `${root}/`);
+      return (world[serverKey(srv)] || []).filter(s => inside(s.path) && depth(s.path) <= 5);
+    }
+
     // What `updater.sh --json` prints for a server
     function listingLines(srv) {
-      const found = world[serverKey(srv)] || [];
+      const found = sitesUnder(srv);
       const skip = config.excludedSites.filter(id => id.startsWith(`${srv.id}:`)).map(id => id.slice(9));
       const todo = found.filter(s => !skip.includes(s.path));
       return [

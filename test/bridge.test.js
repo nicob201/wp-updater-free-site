@@ -269,3 +269,19 @@ test('deleting a server drops its sites', async t => {
   assert.ok(Object.values(fake.state.sites).every(s => s.server === SHARED));
   assert.deepEqual(Object.keys(fake.state.servers), [SHARED]);
 });
+
+test("each server lists the sites under its sites path, like updater.sh's find", async t => {
+  const { fake } = boot(t);
+  settle(t);
+  const listWith = async paths => {
+    const servers = fake.state.config.servers.map(s => ({ ...s, path: paths[s.id] }));
+    assert.equal((await fake.request('/api/config', { ...fake.state.config, servers })).status, 200);
+    settle(t);
+    return Object.keys(fake.state.sites).sort();
+  };
+  assert.deepEqual(await listWith({ [SHARED]: '', [VPS]: '/srv' }), [CLINIC, PORTFOLIO, SHOP, STAGING].sort());
+  // ~ is the account's home folder, and a sites path can be one site
+  assert.deepEqual(await listWith({ [SHARED]: '~/domains/clinic.example/', [VPS]: '/var/www/news' }), [CLINIC, NEWS].sort());
+  // find looks 5 levels deep: from /home, staging's wp-load.php is 6 levels down
+  assert.deepEqual(await listWith({ [SHARED]: '/home', [VPS]: '/var' }), [BLOG, CLINIC, NEWS, PORTFOLIO, SHOP].sort());
+});
