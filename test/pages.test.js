@@ -102,12 +102,31 @@ test('both languages have the same sections, hooks and tracked clicks, in the sa
     assert.equal(ES.split(hook).length, EN.split(hook).length, hook);
 });
 
+test('both languages have the same markup, tag for tag', () => {
+  // Only the text and the attributes that carry language or a link may differ: a card, an answer or a
+  // button added to one page alone fails here
+  const skeleton = html => html.match(/<[^>]+>/g).map(tag => tag.replace(/\s(?:href|hreflang|lang|aria-[a-z]+|title|content)="[^"]*"/g, ''));
+  assert.deepEqual(skeleton(ES), skeleton(EN));
+});
+
 test('the Spanish page never sends people to the English README', () => {
   assert.ok(!ES.includes('wp-updater-free#quick-start'));
   assert.ok(!ES.includes('wp-updater-free#connect-your-server'));
+  assert.ok(attrs(ES, 'href').includes('https://github.com/nicob201/wp-updater-free/blob/main/README.es.md#conecta-tu-servidor'));
+});
+
+test("the Spanish page marks the tool's English labels, so they read and sound as English", () => {
+  const bare = ES.replace(/<(strong|h3) lang="en">[\s\S]*?<\/\1>/g, '').replace(/<[^>]+>/g, ' ');
+  for (const label of ['Update all', 'Check for updates', 'Test connection', "Can't update here", 'Back up sites', 'Settings', 'Check', 'Sites'])
+    assert.doesNotMatch(bare, new RegExp(`\\b${label}\\b`), label);
+});
+
+test('the Spanish page talks to "tú" and says what the English one says', () => {
+  assert.doesNotMatch(ES, /\bSu clave SSH/);
+  assert.match(ES, /encuentra por sí sola los sitios WordPress/);
 });
 
 test('the language switch marks the page it is on', () => {
-  assert.match(EN, /<a aria-current="page">EN<\/a>\s*<a href="\/es\/"/);
-  assert.match(ES, /<a href="\/" hreflang="en" lang="en"[^>]*>EN<\/a>\s*<a aria-current="page">ES<\/a>/);
+  assert.match(EN, /<a aria-current="page" aria-label="English">EN<\/a>\s*<a href="\/es\/"/);
+  assert.match(ES, /<a href="\/" hreflang="en" lang="en"[^>]*>EN<\/a>\s*<a aria-current="page" aria-label="Español">ES<\/a>/);
 });
