@@ -3,7 +3,6 @@
 // and feeds the tool's own lib/state.js the lines updater.sh would print: what the page shows is decided
 // by the tool's code, not by an imitation of it. Nothing here touches the network.
 (() => {
-  const ROUTES = ['events', 'list', 'update', 'backup', 'sizes', 'config', 'test'];
   // How long each fake line takes to arrive, in ms: short, but slow enough to watch
   const T = { line: 150, site: 400, dump: 900, download: 450, check: 700, copy: 1600, size: 350, test: 800 };
   const PUSH = 200;   // like server.js: at most one state push every 200 ms
@@ -323,11 +322,33 @@
       return { status: 202 };
     }
 
+    function saveConfig(body) {
+      if (state.run?.active) return { status: 409, data: { error: busy() } };
+      let next;
+      try { next = C.validate(body); } catch (err) { return { status: 400, data: { error: err.message } }; }
+      applyConfig(next);
+      list({ clearReview: true, restart: true });
+      probeAll();
+      changed();
+      return { status: 200, data: { config: next } };
+    }
+
+    // Any well-formed server answers: a server the fake doesn't know just has no WordPress sites
+    async function testServer(body) {
+      try { C.validate({ servers: [{ ...body, name: 'test', id: '00000000' }] }); }
+      catch (err) { return { status: 400, data: { error: err.message } }; }
+      await new Promise(resolve => setTimeout(resolve, T.test));
+      return { status: 200, data: { ok: true, message: 'OK' } };
+    }
+
+    // The POST routes app.js calls. No X-WPU or Origin checks: no other website can reach this fake
     async function request(route, body) {
       if (route === '/api/list') return { status: list({ clearReview: true }) ? 202 : 409 };
       if (route === '/api/update') return update(body);
       if (route === '/api/backup') return backup(body);
       if (route === '/api/sizes') return sizes(body);
+      if (route === '/api/config') return saveConfig(body);
+      if (route === '/api/test') return testServer(body);
       return { status: 404 };
     }
 
@@ -337,5 +358,57 @@
     return { state, connect, request };
   }
 
-  if (typeof window === 'undefined') module.exports = { createFake, ROUTES, T, SERVERS };
+  // ---- In the page ----
+
+  // config.js only needs randomBytes, for the ids of new servers
+  const randomBytes = n => ({ toString: () => Array.from(crypto.getRandomValues(new Uint8Array(n)), b => b.toString(16).padStart(2, '0')).join('') });
+
+  // Runs one of the tool's CommonJS modules. As plain scripts, their top-level names would clash with app.js's
+  async function load(file, fetch) {
+    const res = await fetch(file);
+    if (!res.ok) throw new Error(`${file} answered ${res.status}`);
+    const module = { exports: {} };
+    const require = name => (name === 'node:crypto' ? { randomBytes } : {});
+    new Function('module', 'exports', 'require', await res.text())(module, module.exports, require);
+    return module.exports;
+  }
+
+  // What server.js sends: JSON when there's data, else the status as text
+  const reply = ({ status, data }) => (data
+    ? new Response(JSON.stringify(data), { status, headers: { 'Content-Type': 'application/json' } })
+    : new Response(String(status), { status, headers: { 'Content-Type': 'text/plain; charset=utf-8' } }));
+
+  // The landing counts what visitors do in the demo, when it has GoatCounter and the same origin
+  function count(name) {
+    try { window.parent.goatcounter?.count?.({ path: name, event: true }); } catch {}
+  }
+
+  // Before app.js runs: its fetch('/api/…') and EventSource('/api/events') reach the fake instead
+  function install() {
+    const realFetch = window.fetch.bind(window);
+    const ready = Promise.all([load('state.js', realFetch), load('config.js', realFetch)])
+      .then(([S, C]) => createFake({ S, C, onEvent: count }));
+
+    window.fetch = async (input, init = {}) => {
+      const url = new URL(input instanceof Request ? input.url : input, location.href);
+      if (url.origin !== location.origin || !url.pathname.startsWith('/api/')) return realFetch(input, init);
+      let body;
+      try { body = init.body === undefined ? undefined : JSON.parse(init.body); } catch { return reply({ status: 400 }); }
+      return reply(await (await ready).request(url.pathname, body));
+    };
+
+    window.EventSource = class extends EventTarget {
+      constructor() {
+        super();
+        this.onopen = this.onerror = null;
+        ready.then(fake => {
+          this.onopen?.(new Event('open'));
+          fake.connect((event, data) => this.dispatchEvent(new MessageEvent(event, { data: JSON.stringify(data) })));
+        }, () => this.onerror?.(new Event('error')));   // the page shows it's not connected
+      }
+    };
+  }
+
+  if (typeof window === 'undefined') module.exports = { createFake, T, SERVERS };
+  else install();
 })();

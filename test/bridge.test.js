@@ -183,3 +183,79 @@ test('a new measuring replaces the one in progress', async t => {
   settle(t);
   assert.equal(site(NEWS).size.status, 'done');
 });
+
+test('excluding the staging copy frees the live site', async t => {
+  const { fake, site } = boot(t);
+  settle(t);
+  const r = await fake.request('/api/config', { ...fake.state.config, excludedSites: [STAGING] });
+  assert.equal(r.status, 200);
+  assert.deepEqual(r.data.config.excludedSites, [STAGING]);
+  assert.deepEqual(fake.state.config, r.data.config);
+  settle(t);
+  assert.equal(site(STAGING).status, 'excluded');
+  assert.equal(site(SHOP).status, 'pending');
+  await fake.request('/api/update', { sites: [SHOP] });
+  settle(t);
+  assert.equal(site(SHOP).status, 'up-to-date');
+  assert.equal(site(SHOP).wp, '7.1.3');
+  assert.deepEqual(site(SHOP).skipped.map(i => i.name), ['elementor-pro']);
+});
+
+test("invalid settings answer 400 with the tool's own message", async t => {
+  const { fake } = boot(t);
+  settle(t);
+  const servers = fake.state.config.servers.map((s, i) => (i ? s : { ...s, host: 'bad host' }));
+  assert.deepEqual(await fake.request('/api/config', { ...fake.state.config, servers }),
+    { status: 400, data: { error: 'Server "Shared hosting": invalid host.' } });
+  assert.equal(fake.state.config.servers[0].host, 'shared.example');
+  assert.deepEqual(await fake.request('/api/config', { ...fake.state.config, exclude: ['Not A Slug'] }),
+    { status: 400, data: { error: '"Not A Slug" is not a valid plugin or theme name (use its slug, e.g. elementor-pro).' } });
+});
+
+test('settings are locked while an update runs', async t => {
+  const { fake } = boot(t);
+  settle(t);
+  await fake.request('/api/update', { sites: [CLINIC] });
+  assert.deepEqual(await fake.request('/api/config', fake.state.config),
+    { status: 409, data: { error: 'An update is running. Try again when it finishes.' } });
+});
+
+test('saving during a listing restarts it', async t => {
+  const { fake, site } = boot(t);
+  wait(t, T.site);   // the first site of each server is being listed
+  assert.equal(fake.state.listing, true);
+  assert.equal((await fake.request('/api/config', { ...fake.state.config, excludedSites: [STAGING] })).status, 200);
+  settle(t);
+  assert.equal(fake.state.listing, false);
+  assert.deepEqual(Object.values(fake.state.sites).filter(s => s.status === 'checking'), []);
+  assert.equal(site(STAGING).status, 'excluded');
+  assert.equal(site(SHOP).status, 'pending');
+});
+
+test('a new server answers OK and has no sites', async t => {
+  const { fake } = boot(t);
+  settle(t);
+  const answer = fake.request('/api/test', { host: 'mine.example', port: 22, user: 'me', path: '' });
+  wait(t, T.test);
+  assert.deepEqual(await answer, { status: 200, data: { ok: true, message: 'OK' } });
+  const servers = [...fake.state.config.servers, { name: 'Mine', host: 'mine.example', port: 22, user: 'me', path: '' }];
+  const r = await fake.request('/api/config', { ...fake.state.config, servers });
+  assert.equal(r.status, 200);
+  const mine = r.data.config.servers[2].id;
+  assert.match(mine, /^[a-f0-9]{8}$/);
+  settle(t);
+  assert.deepEqual(fake.state.servers[mine], { ssh: true, message: null, rsync: true });
+  assert.equal(Object.values(fake.state.sites).filter(s => s.server === mine).length, 0);
+  assert.equal(Object.keys(fake.state.sites).length, 6);
+  assert.deepEqual(await fake.request('/api/test', { host: '-bad', port: 22, user: 'me' }),
+    { status: 400, data: { error: 'Server "test": invalid host.' } });
+});
+
+test('deleting a server drops its sites', async t => {
+  const { fake } = boot(t);
+  settle(t);
+  await fake.request('/api/config', { ...fake.state.config, servers: [fake.state.config.servers[0]] });
+  settle(t);
+  assert.ok(Object.values(fake.state.sites).every(s => s.server === SHARED));
+  assert.deepEqual(Object.keys(fake.state.servers), [SHARED]);
+});
