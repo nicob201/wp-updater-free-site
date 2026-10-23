@@ -288,7 +288,8 @@ dd { margin-top: 4px; color: var(--muted); }
   .window-bar { grid-template-columns: auto 1fr; gap: 12px; }
   .url { min-width: 0; text-align: left; }
   .window iframe { height: 560px; }
-  .actions .button { flex: 1 1 auto; justify-content: center; }
+  /* Full-width buttons, and a long label (like the Spanish star request) wraps instead of overflowing */
+  .actions .button { flex: 1 1 auto; justify-content: center; height: auto; min-height: 40px; padding: 8px 16px; white-space: normal; text-align: center; }
   .band { padding: 20px; }
 }
 
