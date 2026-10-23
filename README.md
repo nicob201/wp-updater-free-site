@@ -30,6 +30,10 @@ Then try the demo, run the tests and commit. Don't edit the copied files by hand
 - a module the tool's code requires that the page can't load;
 - a change in a tool file the bridge re-implements (`server.js`, `updater.sh`, `lib/backups.js`, `lib/run.js`). The sync records their hashes in `demo/upstream.json`. Compare `bridge.js` with the changed files and update it, then copy the new hashes into `PORTED_FROM` at the top of `bridge.js`.
 
+## Analytics
+
+The pages count visits and clicks with [GoatCounter](https://www.goatcounter.com/) (`nicob201.goatcounter.com`), without cookies. Each tracked button or link names its click in a `data-goatcounter-click` attribute, and the demo reports `demo-update` and `demo-backup` to the page around it. The demo's own page isn't counted, so a visit counts once.
+
 ## Tests
 
 ```sh
