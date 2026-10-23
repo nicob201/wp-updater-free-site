@@ -13,7 +13,7 @@ const CLICKS = ['get-started-nav', 'get-started-hero', 'get-started-mid', 'get-s
                 'star-nav', 'star-hero', 'star-final', 'copy-install', 'copy-demo', 'demo-reset', 'open-issue'];
 
 // What each language must say, in its own words
-const SITE = 'https://wp-updater-free.vercel.app';
+const SITE = 'https://wp-updater-free-site.vercel.app';
 const PAGES = [
   { lang: 'en', html: EN, url: `${SITE}/`, image: `${SITE}/assets/og.png`, locale: 'en_US', counts: /counts visits and clicks with <a[^>]*>GoatCounter<\/a>, without cookies and without storing anything that identifies you\./, start: 'https://github.com/nicob201/wp-updater-free#quick-start',
     made: /Made for the love of it ♥ by Nicolas Boscasso/, compare: /Why not ManageWP or MainWP\?/,
