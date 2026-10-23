@@ -186,6 +186,7 @@ test('a new measuring replaces the one in progress', async t => {
   assert.deepEqual([SHOP, CLINIC, NEWS].map(id => site(id).size.status), ['done', 'error', 'measuring']);
   settle(t);
   assert.equal(site(NEWS).size.status, 'done');
+  assert.equal(site(CLINIC).size.status, 'error', 'the cut measuring still answered');
 });
 
 test('excluding the staging copy frees the live site', async t => {
