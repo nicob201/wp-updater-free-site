@@ -323,3 +323,13 @@ test('the live log reads like updater.sh and WP-CLI', async t => {
     'END code=0',
   ]);
 });
+
+test('an Update all of the three ready sites takes about 15 s, short enough to watch to the end', async t => {
+  const { fake } = boot(t);
+  settle(t);
+  await fake.request('/api/update', { sites: [CLINIC, NEWS, BLOG] });
+  wait(t, 12000);
+  assert.equal(fake.state.run.active, true, 'too fast to follow');
+  wait(t, 4000);
+  assert.equal(fake.state.run.active, false, 'too slow for a landing page');
+});

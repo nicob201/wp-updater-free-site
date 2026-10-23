@@ -12,7 +12,7 @@
     'lib/run.js': '01a9a53e9837d3980fb70b621735dd6a50e31994a430225476799d76b76046e1',
   };
   // How long each fake line takes to arrive, in ms: short, but slow enough to watch
-  const T = { line: 150, site: 400, dump: 900, download: 450, check: 700, copy: 1600, size: 350, test: 800 };
+  const T = { line: 80, site: 400, dump: 900, download: 450, check: 700, copy: 1600, size: 350, test: 800 };
   const PUSH = 200;   // like server.js: at most one state push every 200 ms
   // A well-formed public key with no private key anywhere: pasting it into a server opens nothing
   const KEY = 'ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIIECV9omAIBfDR3ci+dvhCz6dHfvj3J4yAYueD0DVQ90 wp-updater';
