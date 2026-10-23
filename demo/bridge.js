@@ -1,7 +1,7 @@
 // Stands in for WP Updater's local bridge (server.js) in the browser, so the tool's real page (app.js)
 // runs against fake servers with fake sites. It answers the same routes with the same codes and messages,
 // and feeds the tool's own lib/state.js the lines updater.sh would print: what the page shows is decided
-// by the tool's code, not by an imitation of it. Nothing here touches the network.
+// by the tool's code, not by an imitation of it. Nothing here reaches a real server or site.
 (() => {
   // The sha256 of the tool's files this bridge re-implements, as they were when it was last compared with them
   // (v0.2.2). When a release changes one, test/drift.test.js fails: compare, update the bridge, then these

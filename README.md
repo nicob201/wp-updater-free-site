@@ -4,7 +4,7 @@ The landing page of [WP Updater](https://github.com/nicob201/wp-updater-free), a
 
 ## The demo
 
-`demo/` is the tool's real page, taken from a release tag, running against `demo/bridge.js` instead of the tool's local server. The bridge answers the same routes as the tool's `server.js` and feeds the tool's own `lib/state.js` the lines `updater.sh` would print, for fake servers with fake sites. What the page shows is decided by the tool's code, and nothing in it touches the network.
+`demo/` is the tool's real page, taken from a release tag, running against `demo/bridge.js` instead of the tool's local server. The bridge answers the same routes as the tool's `server.js` and feeds the tool's own `lib/state.js` the lines `updater.sh` would print, for fake servers with fake sites. What the page shows is decided by the tool's code, and nothing in it reaches a real server or site.
 
 Try it locally (it's a static site, with no build step):
 
@@ -22,7 +22,7 @@ To move the demo to the latest release of the tool:
 node scripts/sync-demo.js
 ```
 
-Then try the demo, run the tests and commit. Don't edit the copied files by hand (everything in `demo/` except `bridge.js`): CI checks that they match the tag in `demo/version.txt`, and every Monday it checks that the tag is still the latest release.
+Then try the demo, run the tests and commit. Don't edit the copied files by hand (everything in `demo/` except `bridge.js`): CI checks that they match the tag in `demo/version.txt`, and every Monday it checks that the tag is still the latest release. GitHub pauses scheduled workflows after 60 days without activity in the repo: if the `release-check` workflow stops running, turn it back on in the Actions tab.
 
 `test/drift.test.js` fails when a release asks the bridge for something new:
 
