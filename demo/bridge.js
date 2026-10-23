@@ -1,7 +1,7 @@
 // Stands in for WP Updater's local bridge (server.js) in the browser, so the tool's real page (app.js)
 // runs against fake servers with fake sites. It answers the same routes with the same codes and messages,
 // and feeds the tool's own lib/state.js the lines updater.sh would print: what the page shows is decided
-// by the tool's code, not by an imitation of it. Nothing here touches the network.
+// by the tool's code, not by an imitation of it. Nothing here reaches a real server or site.
 (() => {
   // The sha256 of the tool's files this bridge re-implements, as they were when it was last compared with them
   // (v0.2.2). When a release changes one, test/drift.test.js fails: compare, update the bridge, then these
@@ -12,7 +12,7 @@
     'lib/run.js': '01a9a53e9837d3980fb70b621735dd6a50e31994a430225476799d76b76046e1',
   };
   // How long each fake line takes to arrive, in ms: short, but slow enough to watch
-  const T = { line: 150, site: 400, dump: 900, download: 450, check: 700, copy: 1600, size: 350, test: 800 };
+  const T = { line: 80, site: 400, dump: 900, download: 450, check: 700, copy: 1600, size: 350, test: 800 };
   const PUSH = 200;   // like server.js: at most one state push every 200 ms
   // A well-formed public key with no private key anywhere: pasting it into a server opens nothing
   const KEY = 'ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIIECV9omAIBfDR3ci+dvhCz6dHfvj3J4yAYueD0DVQ90 wp-updater';
@@ -21,6 +21,8 @@
     { id: 'e5f6a7b8', name: 'VPS', host: 'vps.example', port: 22, user: 'deploy', path: '/var/www' },
   ];
   const DAY = 86400000;
+  // The database version of each fake WordPress release, as `wp core update-db` reports it
+  const DB_VERSION = { '6.8.3': 60421, '6.9.1': 60717, '7.0.2': 61833, '7.1.3': 62012 };
 
   // A plugin or theme as `wp plugin list --format=json` prints it
   const item = (name, version, next = '', more = {}) =>
@@ -65,8 +67,9 @@
     };
   }
 
-  // The same rule as folderName in lib/backups.js: https://example.com/blog/ → example.com_blog
-  const folderName = url => url.replace(/^.*?:\/\//, '').replace(/[/:]/g, '_').replace(/_+$/, '');
+  // A site's folder in data/backups, by the same rule as lib/backups.js and updater.sh:
+  // https://example.com/blog/ → <user>@<host>/example.com_blog
+  const backupDir = (srv, url) => `${srv.user}@${srv.host}/${url.replace(/^.*?:\/\//, '').replace(/[/:]/g, '_').replace(/_+$/, '')}`;
   const serverKey = srv => `${srv.user}@${srv.host}:${srv.port}`;
   const iso = ms => new Date(ms).toISOString().replace(/\.\d{3}Z$/, 'Z');
 
@@ -107,18 +110,22 @@
       const v = newest(s.core);
       lines.push(`Updating to version ${v} (en_US)...`,
         `Downloading update from https://downloads.wordpress.org/release/wordpress-${v}-no-content.zip...`,
-        'Unpacking the update...', 'Installing the latest version...', 'Success: WordPress updated successfully.');
-    }
+        'Unpacking the update...', 'Cleaning up files...', 'No files found that need cleaning up',
+        'Success: WordPress updated successfully.',
+        `Success: WordPress database upgraded successfully from db version ${DB_VERSION[s.wp]} to ${DB_VERSION[v]}.`);
+    } else lines.push('Success: WordPress is up to date.', `Success: WordPress database already at latest db version ${DB_VERSION[s.wp]}.`);
     for (const [type, items] of [['plugin', s.plugins], ['theme', s.themes]]) {
+      const Type = `${type[0].toUpperCase()}${type.slice(1)}`;
       const todo = updatable(items, exclude);
-      if (!todo.length) continue;
+      if (!todo.length) { lines.push(`Success: ${Type} already updated.`); continue; }
+      lines.push('Enabling Maintenance mode...');
       for (const x of todo) lines.push(`Downloading update from https://downloads.wordpress.org/${type}/${x.name}.${x.update_version}.zip...`,
-        'Unpacking the update...', 'Installing the latest version...', `Removing the old version of the ${type}...`,
-        `${type[0].toUpperCase()}${type.slice(1)} updated successfully.`);
-      lines.push('name\told_version\tnew_version\tstatus', ...todo.map(x => `${x.name}\t${x.version}\t${x.update_version}\tUpdated`),
-        `Success: Updated ${todo.length} of ${todo.length} ${type}s.`);
+        'Unpacking the update...', 'Installing the latest version...', `Removing the old version of the ${type}...`, `${Type} updated successfully.`);
+      lines.push('Disabling Maintenance mode...', 'name\told_version\tnew_version\tstatus',
+        ...todo.map(x => `${x.name}\t${x.version}\t${x.update_version}\tUpdated`), `Success: Updated ${todo.length} of ${todo.length} ${type}s.`);
     }
-    lines.push('Success: Translations are up to date.', `== ${id}: OK`);
+    // wp language core, plugin and theme update, then wp cache flush
+    lines.push(...Array(3).fill('Success: Translations are up to date.'), 'Success: The cache was flushed.', `== ${id}: OK`);
     return lines;
   }
 
@@ -131,8 +138,8 @@
 
   function createFake({ S, C, onEvent = () => {} }) {
     const world = newWorld();
-    // The backups on "this computer", by user@host/folder, as lib/backups.js finds them on disk
-    const disk = new Map([['u1234567@shared.example/portfolio.example', { date: iso(Date.now() - 2 * DAY), bytes: 318000000 }]]);
+    // The full backups on "this computer", by backupDir, as lib/backups.js finds them on disk
+    const disk = new Map([[backupDir(SERVERS[0], 'https://portfolio.example'), { date: iso(Date.now() - 2 * DAY), bytes: 318000000 }]]);
     const state = S.newState();
     state.publicKey = KEY;
     state.hardlinks = true;
@@ -170,9 +177,17 @@
 
     // ---- The fake updater.sh ----
 
+    // The sites `find <sites path> -maxdepth 5 -name wp-load.php` finds; no sites path is the home folder
+    function sitesUnder(srv) {
+      const root = (srv.path || '~').replace(/^~(?=\/|$)/, `/home/${srv.user}`).replace(/(.)\/+$/, '$1');
+      const depth = path => path.slice(root.length).split('/').filter(Boolean).length + 1;   // of its wp-load.php
+      const inside = path => path === root || path.startsWith(root === '/' ? root : `${root}/`);
+      return (world[serverKey(srv)] || []).filter(s => inside(s.path) && depth(s.path) <= 5);
+    }
+
     // What `updater.sh --json` prints for a server
     function listingLines(srv) {
-      const found = world[serverKey(srv)] || [];
+      const found = sitesUnder(srv);
       const skip = config.excludedSites.filter(id => id.startsWith(`${srv.id}:`)).map(id => id.slice(9));
       const todo = found.filter(s => !skip.includes(s.path));
       return [
@@ -190,7 +205,7 @@
     // What `updater.sh --backup` prints for one site, and the copy it leaves on disk
     function backupLines(id, srv, s) {
       return [`== ${id}: database backup`, `== ${id}: copying files`, `== ${id}: OK`,
-              () => disk.set(`${srv.user}@${srv.host}/${folderName(s.url)}`, { date: iso(Date.now()), bytes: s.bytes })];
+              () => disk.set(backupDir(srv, s.url), { date: iso(Date.now()), bytes: s.bytes })];
     }
 
     // What one updater.sh call per server prints for a run, one server after another, like lib/run.js
@@ -238,12 +253,12 @@
     function refreshBackups() {
       const dir = s => {
         const srv = config.servers.find(x => x.id === s.server);
-        return srv && s.url && s.status !== 'excluded' && `${srv.user}@${srv.host}/${folderName(s.url)}`;
+        return srv && s.url && s.status !== 'excluded' && backupDir(srv, s.url);
       };
       const sites = Object.values(state.sites);
       for (const s of sites) {
         const srv = config.servers.find(x => x.id === s.server);
-        s.lastFull = (srv && s.url && disk.get(`${srv.user}@${srv.host}/${folderName(s.url)}`)) || null;
+        s.lastFull = (srv && s.url && disk.get(backupDir(srv, s.url))) || null;
         const mate = dir(s) && sites.find(o => o !== s && dir(o) === dir(s));
         s.backupNote = mate ? `Shares its backup folder with ${mate.url}` : null;
       }
@@ -275,7 +290,8 @@
     // An update or a backup, one server after another
     function start(ids, kind = 'update') {
       S.startRun(state, ids, Date.now(), kind);
-      play([...runLines(ids, kind), 'END code=0'], line => { S.runLine(state, line, Date.now()); log(line); changed(); }, finishRun);
+      // lib/run.js prints END on a line of its own, after a blank one
+      play([...runLines(ids, kind), '', 'END code=0'], line => { S.runLine(state, line, Date.now()); log(line); changed(); }, finishRun);
       changed();
     }
 
