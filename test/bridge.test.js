@@ -1,8 +1,12 @@
 const test = require('node:test');
 const assert = require('node:assert/strict');
-const S = require('../demo/state.js');
-const C = require('../demo/config.js');
-const { createFake, SERVERS, T } = require('../demo/bridge.js');
+const fs = require('node:fs');
+const path = require('node:path');
+const { createFake, run, SERVERS, T } = require('../demo/bridge.js');
+
+// The tool's modules, run the way the page runs them
+const S = run(fs.readFileSync(path.join(__dirname, '..', 'demo', 'state.js'), 'utf8'));
+const C = run(fs.readFileSync(path.join(__dirname, '..', 'demo', 'config.js'), 'utf8'));
 
 const SHARED = SERVERS[0].id, VPS = SERVERS[1].id;
 const SHOP = `${SHARED}:/home/u1234567/domains/shop.example/public_html`;

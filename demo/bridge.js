@@ -360,17 +360,29 @@
 
   // ---- In the page ----
 
-  // config.js only needs randomBytes, for the ids of new servers
-  const randomBytes = n => ({ toString: () => Array.from(crypto.getRandomValues(new Uint8Array(n)), b => b.toString(16).padStart(2, '0')).join('') });
+  // What the tool's modules require: config.js uses fs only to load and save its file, which the fake never
+  // does, and crypto only for the ids of new servers. Anything else is a release the bridge doesn't know yet
+  const MODULES = {
+    'node:fs': {},
+    'node:crypto': { randomBytes: n => ({ toString: () => Array.from(crypto.getRandomValues(new Uint8Array(n)), b => b.toString(16).padStart(2, '0')).join('') }) },
+  };
+  function require(name) {
+    if (!(name in MODULES)) throw new Error(`The tool's code requires ${name}, which the demo doesn't have: update demo/bridge.js.`);
+    return MODULES[name];
+  }
 
-  // Runs one of the tool's CommonJS modules. As plain scripts, their top-level names would clash with app.js's
+  // Runs one of the tool's CommonJS modules and returns its exports. Loaded as plain scripts, their top-level
+  // names would clash with app.js's
+  function run(text) {
+    const module = { exports: {} };
+    new Function('module', 'exports', 'require', text)(module, module.exports, require);
+    return module.exports;
+  }
+
   async function load(file, fetch) {
     const res = await fetch(file);
     if (!res.ok) throw new Error(`${file} answered ${res.status}`);
-    const module = { exports: {} };
-    const require = name => (name === 'node:crypto' ? { randomBytes } : {});
-    new Function('module', 'exports', 'require', await res.text())(module, module.exports, require);
-    return module.exports;
+    return run(await res.text());
   }
 
   // What server.js sends: JSON when there's data, else the status as text
@@ -409,6 +421,6 @@
     };
   }
 
-  if (typeof window === 'undefined') module.exports = { createFake, T, SERVERS };
+  if (typeof window === 'undefined') module.exports = { createFake, run, T, SERVERS };
   else install();
 })();

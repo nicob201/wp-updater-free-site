@@ -4,11 +4,12 @@ const test = require('node:test');
 const assert = require('node:assert/strict');
 const fs = require('node:fs');
 const path = require('node:path');
-const S = require('../demo/state.js');
-const C = require('../demo/config.js');
-const { createFake } = require('../demo/bridge.js');
+const { createFake, run } = require('../demo/bridge.js');
 
-const APP = fs.readFileSync(path.join(__dirname, '..', 'demo', 'app.js'), 'utf8');
+const read = file => fs.readFileSync(path.join(__dirname, '..', 'demo', file), 'utf8');
+const APP = read('app.js');
+const S = run(read('state.js'));
+const C = run(read('config.js'));
 const routes = () => [...new Set([...APP.matchAll(/'(\/api\/\w+)'/g)].map(m => m[1]))];
 
 test('the fake answers every route app.js calls', async t => {
@@ -25,4 +26,9 @@ test('the fake sets every state field app.js reads', t => {
   const fake = createFake({ S, C });
   for (const name of new Set([...APP.matchAll(/\bstate\.(\w+)/g)].map(m => m[1])))
     assert.ok(name in fake.state, `app.js reads state.${name}, which the fake never sets`);
+});
+
+test("a module that requires something the demo doesn't have stops loudly", () => {
+  assert.throws(() => run("const util = require('node:util'); module.exports = util.format('x');"), /requires node:util, which the demo doesn't have/);
+  assert.match(C.validate({ servers: [{ name: 'New', host: 'new.example', user: 'me' }] }).servers[0].id, /^[a-f0-9]{8}$/);
 });
