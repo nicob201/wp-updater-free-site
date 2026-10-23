@@ -65,8 +65,9 @@
     };
   }
 
-  // The same rule as folderName in lib/backups.js: https://example.com/blog/ → example.com_blog
-  const folderName = url => url.replace(/^.*?:\/\//, '').replace(/[/:]/g, '_').replace(/_+$/, '');
+  // A site's folder in data/backups, by the same rule as lib/backups.js and updater.sh:
+  // https://example.com/blog/ → <user>@<host>/example.com_blog
+  const backupDir = (srv, url) => `${srv.user}@${srv.host}/${url.replace(/^.*?:\/\//, '').replace(/[/:]/g, '_').replace(/_+$/, '')}`;
   const serverKey = srv => `${srv.user}@${srv.host}:${srv.port}`;
   const iso = ms => new Date(ms).toISOString().replace(/\.\d{3}Z$/, 'Z');
 
@@ -131,8 +132,8 @@
 
   function createFake({ S, C, onEvent = () => {} }) {
     const world = newWorld();
-    // The backups on "this computer", by user@host/folder, as lib/backups.js finds them on disk
-    const disk = new Map([['u1234567@shared.example/portfolio.example', { date: iso(Date.now() - 2 * DAY), bytes: 318000000 }]]);
+    // The full backups on "this computer", by backupDir, as lib/backups.js finds them on disk
+    const disk = new Map([[backupDir(SERVERS[0], 'https://portfolio.example'), { date: iso(Date.now() - 2 * DAY), bytes: 318000000 }]]);
     const state = S.newState();
     state.publicKey = KEY;
     state.hardlinks = true;
@@ -198,7 +199,7 @@
     // What `updater.sh --backup` prints for one site, and the copy it leaves on disk
     function backupLines(id, srv, s) {
       return [`== ${id}: database backup`, `== ${id}: copying files`, `== ${id}: OK`,
-              () => disk.set(`${srv.user}@${srv.host}/${folderName(s.url)}`, { date: iso(Date.now()), bytes: s.bytes })];
+              () => disk.set(backupDir(srv, s.url), { date: iso(Date.now()), bytes: s.bytes })];
     }
 
     // What one updater.sh call per server prints for a run, one server after another, like lib/run.js
@@ -246,12 +247,12 @@
     function refreshBackups() {
       const dir = s => {
         const srv = config.servers.find(x => x.id === s.server);
-        return srv && s.url && s.status !== 'excluded' && `${srv.user}@${srv.host}/${folderName(s.url)}`;
+        return srv && s.url && s.status !== 'excluded' && backupDir(srv, s.url);
       };
       const sites = Object.values(state.sites);
       for (const s of sites) {
         const srv = config.servers.find(x => x.id === s.server);
-        s.lastFull = (srv && s.url && disk.get(`${srv.user}@${srv.host}/${folderName(s.url)}`)) || null;
+        s.lastFull = (srv && s.url && disk.get(backupDir(srv, s.url))) || null;
         const mate = dir(s) && sites.find(o => o !== s && dir(o) === dir(s));
         s.backupNote = mate ? `Shares its backup folder with ${mate.url}` : null;
       }
