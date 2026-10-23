@@ -221,11 +221,16 @@ test('settings are locked while an update runs', async t => {
 });
 
 test('saving during a listing restarts it', async t => {
-  const { fake, site } = boot(t);
+  const { fake, pushes, site } = boot(t);
   wait(t, T.site);   // the first site of each server is being listed
   assert.equal(fake.state.listing, true);
   assert.equal((await fake.request('/api/config', { ...fake.state.config, excludedSites: [STAGING] })).status, 200);
+  const saved = pushes.length;
   settle(t);
+  // The dropped listing numbers the shared server's sites out of 4; the new one, without staging, out of 3
+  const late = pushes.slice(saved).filter(p => p.event === 'log' && / \[\d\/4\] /.test(p.data));
+  assert.deepEqual(late, [], 'lines of the dropped listing arrived after the save');
+  assert.ok(pushes.slice(saved).some(p => p.event === 'log' && / \[\d\/3\] /.test(p.data)));
   assert.equal(fake.state.listing, false);
   assert.deepEqual(Object.values(fake.state.sites).filter(s => s.status === 'checking'), []);
   assert.equal(site(STAGING).status, 'excluded');
