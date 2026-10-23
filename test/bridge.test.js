@@ -2,7 +2,7 @@ const test = require('node:test');
 const assert = require('node:assert/strict');
 const S = require('../demo/state.js');
 const C = require('../demo/config.js');
-const { createFake, SERVERS } = require('../demo/bridge.js');
+const { createFake, SERVERS, T } = require('../demo/bridge.js');
 
 const SHARED = SERVERS[0].id, VPS = SERVERS[1].id;
 const SHOP = `${SHARED}:/home/u1234567/domains/shop.example/public_html`;
@@ -88,4 +88,98 @@ test('check for updates lists again, and only one listing runs at a time', async
   assert.equal(fake.state.listing, true);
   settle(t);
   assert.ok(fake.state.checked > before);
+});
+
+test('an update brings the sites up to date and says what changed', async t => {
+  const { fake, events, site } = boot(t);
+  settle(t);
+  assert.deepEqual(await fake.request('/api/update', { sites: [CLINIC, NEWS, BLOG] }), { status: 202 });
+  assert.deepEqual(events, ['demo-update']);
+  wait(t, T.site + T.line + T.dump);
+  assert.equal(fake.state.run.active, true);
+  assert.equal(site(CLINIC).status, 'updating');
+  assert.equal(site(CLINIC).step, 'updating');
+  assert.deepEqual([NEWS, BLOG].map(id => site(id).status), ['queued', 'queued']);
+  settle(t);
+  assert.equal(fake.state.run.active, false);
+  assert.equal(fake.state.run.code, 0);
+  assert.deepEqual(fake.state.run.done, [CLINIC, NEWS, BLOG]);
+  assert.deepEqual([CLINIC, NEWS, BLOG].map(id => site(id).status), ['up-to-date', 'up-to-date', 'up-to-date']);
+  assert.equal(site(NEWS).wp, '7.1.3');
+  assert.deepEqual(site(NEWS).result.find(r => r.type === 'core'), { type: 'core', name: 'WordPress', before: '7.0.2', after: '7.1.3' });
+  assert.deepEqual(site(NEWS).result.find(r => r.name === 'akismet'), { type: 'plugin', name: 'akismet', before: '5.5', after: '5.6' });
+  assert.deepEqual(site(BLOG).result.find(r => r.type === 'theme'), { type: 'theme', name: 'twentytwentyfive', before: '1.3', after: '1.4' });
+  assert.ok(fake.state.log.includes('Success: Translations are up to date.'));
+});
+
+test('excluded and unavailable items are never updated', async t => {
+  const { fake, site } = boot(t);
+  settle(t);
+  await fake.request('/api/update', { sites: [CLINIC, NEWS] });
+  settle(t);
+  assert.ok(site(CLINIC).result.some(r => r.name === 'contact-form-7'));
+  assert.equal(site(NEWS).wp, '7.1.3');
+  assert.deepEqual(site(CLINIC).skipped.map(i => [i.name, i.current]), [['elementor-pro', '4.0.1']]);
+  assert.ok(!site(CLINIC).result.some(r => r.name === 'elementor-pro'));
+  const jetpack = site(NEWS).unavailable.find(i => i.name === 'jetpack');
+  assert.deepEqual([jetpack.current, jetpack.needs], ['15.0', 'PHP 8.3']);
+});
+
+test('busy answers 409 like the tool', async t => {
+  const { fake } = boot(t);   // the first listing is still running
+  assert.deepEqual(await fake.request('/api/update', { sites: [CLINIC] }), { status: 409 });
+  assert.deepEqual(await fake.request('/api/backup', { sites: [CLINIC] }),
+    { status: 409, data: { error: 'The sites are being checked. Try again when it finishes.' } });
+  settle(t);
+  await fake.request('/api/update', { sites: [CLINIC] });
+  assert.deepEqual(await fake.request('/api/sizes', { sites: [CLINIC] }),
+    { status: 409, data: { error: 'An update is running. Try again when it finishes.' } });
+  assert.deepEqual(await fake.request('/api/update', { sites: [NEWS] }), { status: 409 });
+  assert.deepEqual(await fake.request('/api/list'), { status: 409 });
+  settle(t);
+  // The run and the listing after it are over
+  assert.equal(fake.state.listing, false);
+  assert.deepEqual(await fake.request('/api/update', { sites: [NEWS] }), { status: 202 });
+});
+
+test('sites with nothing to update answer 400', async t => {
+  const { fake } = boot(t);
+  settle(t);
+  for (const sites of [[PORTFOLIO], [SHOP], ['0000ffff:/x'], [], 'all', [CLINIC, 'nope']])
+    assert.deepEqual(await fake.request('/api/update', { sites }), { status: 400 }, JSON.stringify(sites));
+  assert.deepEqual(await fake.request('/api/update'), { status: 400 });
+});
+
+test('sizes, then a backup, leave a full copy dated now', async t => {
+  const { fake, events, site } = boot(t);
+  settle(t);
+  assert.deepEqual(await fake.request('/api/sizes', { sites: [PORTFOLIO, CLINIC] }), { status: 202 });
+  assert.deepEqual([PORTFOLIO, CLINIC].map(id => site(id).size), [{ status: 'measuring' }, { status: 'measuring' }]);
+  wait(t, T.size * 2);
+  assert.deepEqual([PORTFOLIO, CLINIC].map(id => site(id).size), [{ status: 'done', bytes: 320000000 }, { status: 'done', bytes: 850000000 }]);
+  assert.deepEqual(await fake.request('/api/backup', { sites: [CLINIC] }), { status: 202 });
+  assert.deepEqual(events, ['demo-backup']);
+  wait(t, T.site + T.line);
+  assert.deepEqual(site(CLINIC).backup, { status: 'copying', step: 'database', reason: null });
+  settle(t);
+  assert.match(site(CLINIC).lastFull.date, /^2026-10-23T12:0\d:\d\dZ$/);
+  assert.equal(site(CLINIC).lastFull.bytes, 850000000);
+  assert.deepEqual(site(CLINIC).backup, { status: 'done', step: null, reason: null });
+  assert.equal(site(CLINIC).status, 'pending');
+  assert.deepEqual(await fake.request('/api/backup', { sites: ['0000ffff:/x'] }),
+    { status: 400, data: { error: "These sites can't be backed up right now." } });
+  assert.deepEqual(await fake.request('/api/sizes', { sites: ['0000ffff:/x'] }),
+    { status: 400, data: { error: "These sites can't be measured." } });
+});
+
+test('a new measuring replaces the one in progress', async t => {
+  const { fake, site } = boot(t);
+  settle(t);
+  await fake.request('/api/sizes', { sites: [SHOP, CLINIC] });
+  wait(t, T.size);
+  await fake.request('/api/sizes', { sites: [NEWS] });
+  // SHOP was measured; CLINIC, cut halfway, ends unknown, like a killed --sizes
+  assert.deepEqual([SHOP, CLINIC, NEWS].map(id => site(id).size.status), ['done', 'error', 'measuring']);
+  settle(t);
+  assert.equal(site(NEWS).size.status, 'done');
 });

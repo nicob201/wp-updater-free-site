@@ -74,17 +74,52 @@
     return T.line;
   }
 
-  // A fake run of updater.sh: each line arrives after its delay, then done(). kill() stops it for good,
-  // like killing the process
+  // A fake run of updater.sh: each line arrives after its delay, then done(). A function among the lines is
+  // what the script does to the server at that point: it runs right after the line before it. kill() stops
+  // the run for good, like killing the process
   function play(lines, onLine, done = () => {}) {
-    let i = 0, timer = null;
+    let i = 0, prev = '', timer = null;
     const next = () => {
+      while (typeof lines[i] === 'function') lines[i++]();
       if (i === lines.length) return done();
-      const line = lines[i];
-      timer = setTimeout(() => { i += 1; onLine(line); next(); }, delay(line, lines[i - 1] || ''));
+      const line = lines[i++];
+      timer = setTimeout(() => { prev = line; onLine(line); next(); }, delay(line, prev));
     };
     next();
     return { kill: () => clearTimeout(timer) };
+  }
+
+  // wp core update installs the highest version offered
+  const newest = core => core.map(c => c.version).sort((a, b) => b.localeCompare(a, 'en', { numeric: true }))[0];
+  const updatable = (items, exclude) => items.filter(x => x.update === 'available' && !exclude.includes(x.name));
+
+  // What `updater.sh --apply` prints for one site, as WP-CLI prints it, and what it does to the site
+  function updateLines(id, s, exclude) {
+    const lines = [`== ${id}: database backup`, `== ${id}: updating`, () => upgrade(s, exclude)];
+    if (s.core.length) {
+      const v = newest(s.core);
+      lines.push(`Updating to version ${v} (en_US)...`,
+        `Downloading update from https://downloads.wordpress.org/release/wordpress-${v}-no-content.zip...`,
+        'Unpacking the update...', 'Installing the latest version...', 'Success: WordPress updated successfully.');
+    }
+    for (const [type, items] of [['plugin', s.plugins], ['theme', s.themes]]) {
+      const todo = updatable(items, exclude);
+      if (!todo.length) continue;
+      for (const x of todo) lines.push(`Downloading update from https://downloads.wordpress.org/${type}/${x.name}.${x.update_version}.zip...`,
+        'Unpacking the update...', 'Installing the latest version...', `Removing the old version of the ${type}...`,
+        `${type[0].toUpperCase()}${type.slice(1)} updated successfully.`);
+      lines.push('name\told_version\tnew_version\tstatus', ...todo.map(x => `${x.name}\t${x.version}\t${x.update_version}\tUpdated`),
+        `Success: Updated ${todo.length} of ${todo.length} ${type}s.`);
+    }
+    lines.push('Success: Translations are up to date.', `== ${id}: OK`);
+    return lines;
+  }
+
+  // The site after `wp core update`, `wp plugin update --all --exclude=…` and `wp theme update --all --exclude=…`
+  function upgrade(s, exclude) {
+    if (s.core.length) Object.assign(s, { wp: newest(s.core), core: [] });
+    for (const x of [...updatable(s.plugins, exclude), ...updatable(s.themes, exclude)])
+      Object.assign(x, { version: x.update_version, update: 'none', update_version: '' });
   }
 
   function createFake({ S, C, onEvent = () => {} }) {
@@ -97,6 +132,7 @@
     const clients = new Set();
     let config;
     let listing = [];   // the listings in progress, one per server
+    let measuring = { ids: [], runs: [] };   // the measurings in progress, one per server
     let pendingSend = null;
 
     function applyConfig(c) {
@@ -140,6 +176,32 @@
                            core: s.core, plugins: s.plugins, themes: s.themes }),
         ]),
       ];
+    }
+
+    const worldSite = (srv, path) => (world[serverKey(srv)] || []).find(s => s.path === path);
+
+    // What `updater.sh --backup` prints for one site, and the copy it leaves on disk
+    function backupLines(id, srv, s) {
+      return [`== ${id}: database backup`, `== ${id}: copying files`, `== ${id}: OK`,
+              () => disk.set(`${srv.user}@${srv.host}/${folderName(s.url)}`, { date: iso(Date.now()), bytes: s.bytes })];
+    }
+
+    // What one updater.sh call per server prints for a run, one server after another, like lib/run.js
+    function runLines(ids, kind) {
+      const exclude = config.exclude;
+      return config.servers.flatMap(srv => {
+        const paths = ids.filter(id => id.startsWith(`${srv.id}:`)).map(id => id.slice(9));
+        return paths.flatMap((path, i) => {
+          const id = `${srv.id}:${path}`, s = worldSite(srv, path);
+          return [`===== [${i + 1}/${paths.length}] ${id}`, ...(kind === 'backup' ? backupLines(id, srv, s) : updateLines(id, s, exclude))];
+        });
+      });
+    }
+
+    // What `updater.sh --sizes` prints for a site
+    function sizeLine(srv, id) {
+      const s = worldSite(srv, id.slice(9));
+      return JSON.stringify(s ? { site: id, bytes: s.bytes } : { site: id, error: 'could not measure' });
     }
 
     // ---- What server.js does with it ----
@@ -188,10 +250,84 @@
       }, T.line);
     }
 
-    // ---- API ----
+    // A measuring replaces the one in progress: what that one didn't measure yet ends as unknown
+    function measure(ids) {
+      for (const r of measuring.runs) r.kill();
+      S.endSizes(state, measuring.ids);
+      measuring = { ids, runs: [] };
+      S.startSizes(state, ids);
+      for (const srv of config.servers) {
+        const own = ids.filter(id => id.startsWith(`${srv.id}:`));
+        if (!own.length) continue;
+        measuring.runs.push(play(own.map(id => sizeLine(srv, id)), line => { S.sizeLine(state, line); changed(); },
+                                 () => { S.endSizes(state, own); changed(); }));
+      }
+      changed();
+    }
 
-    async function request(route) {
+    // An update or a backup, one server after another
+    function start(ids, kind = 'update') {
+      S.startRun(state, ids, Date.now(), kind);
+      play([...runLines(ids, kind), 'END code=0'], line => { S.runLine(state, line, Date.now()); log(line); changed(); }, finishRun);
+      changed();
+    }
+
+    // After an update, a listing confirms the sites ended up up to date. A backup only changed what's on disk
+    function finishRun() {
+      if (state.run.kind === 'update') list();
+      else { refreshBackups(); changed(); }
+    }
+
+    // ---- API (the handlers of server.js, with the same codes and messages) ----
+
+    function update(body) {
+      if (state.run?.active || listing.length) return { status: 409 };
+      const ids = body?.sites;
+      const valid = id => typeof id === 'string' && C.SITE_ID.test(id) && config.servers.some(s => s.id === id.slice(0, 8))
+        && state.sites[id]?.pending.length > 0 && ['pending', 'review'].includes(state.sites[id].status);
+      if (!Array.isArray(ids) || !ids.length || !ids.every(valid)) return { status: 400 };
+      start([...new Set(ids)]);
+      onEvent('demo-update');
+      return { status: 202 };
+    }
+
+    // Why nothing else can start now, or null
+    function busy() {
+      if (state.run?.active) return `${state.run.kind === 'backup' ? 'A backup' : 'An update'} is running. Try again when it finishes.`;
+      return listing.length ? 'The sites are being checked. Try again when it finishes.' : null;
+    }
+
+    // Copying only reads: duplicates can be copied. A site needs its address, a server that answers and
+    // has rsync, and a folder of its own
+    function backup(body) {
+      if (busy()) return { status: 409, data: { error: busy() } };
+      const ids = body?.sites;
+      const valid = id => {
+        const s = typeof id === 'string' && C.SITE_ID.test(id) && state.sites[id];
+        const srv = s && config.servers.find(x => x.id === s.server) && state.servers[s.server];
+        return !!srv && srv.ssh !== false && srv.rsync !== false && !!s.url
+          && !['excluded', 'checking', 'error'].includes(s.status) && s.backupNote === null;
+      };
+      if (!Array.isArray(ids) || !ids.length || !ids.every(valid)) return { status: 400, data: { error: "These sites can't be backed up right now." } };
+      start([...new Set(ids)], 'backup');
+      onEvent('demo-backup');
+      return { status: 202 };
+    }
+
+    function sizes(body) {
+      if (busy()) return { status: 409, data: { error: busy() } };
+      const ids = body?.sites;
+      const valid = id => typeof id === 'string' && C.SITE_ID.test(id) && !!state.sites[id] && config.servers.some(s => s.id === id.slice(0, 8));
+      if (!Array.isArray(ids) || !ids.length || !ids.every(valid)) return { status: 400, data: { error: "These sites can't be measured." } };
+      measure([...new Set(ids)]);
+      return { status: 202 };
+    }
+
+    async function request(route, body) {
       if (route === '/api/list') return { status: list({ clearReview: true }) ? 202 : 409 };
+      if (route === '/api/update') return update(body);
+      if (route === '/api/backup') return backup(body);
+      if (route === '/api/sizes') return sizes(body);
       return { status: 404 };
     }
 
