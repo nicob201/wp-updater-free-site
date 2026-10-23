@@ -1,0 +1,228 @@
+<!doctype html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="color-scheme" content="dark">
+<title>WP Updater: actualiza todos tus sitios WordPress desde una página</title>
+<meta name="description" content="Una herramienta gratuita y de código abierto que corre en tu computadora y actualiza WordPress, plugins, temas y traducciones en todos tus sitios por SSH, con una copia verificada de la base de datos antes de cada uno. No hay nada que instalar en tus sitios.">
+<link rel="alternate" hreflang="en" href="/">
+<link rel="alternate" hreflang="es" href="/es/">
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Crect width='32' height='32' rx='8' fill='%23000'/%3E%3Cpath d='M23 12a8 8 0 0 0-14-2M9 20a8 8 0 0 0 14 2M9 6v4h4M23 26v-4h-4' fill='none' stroke='%23fff' stroke-width='2.6' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Geist:wght@400;500;600&family=Geist+Mono:wght@400;500&display=swap">
+<link rel="stylesheet" href="/assets/site.css">
+<script src="/assets/site.js" defer></script>
+</head>
+<body>
+<svg hidden>
+  <symbol id="i-logo" viewBox="0 0 24 24"><path d="M18 9a6.5 6.5 0 0 0-11.5-1.5M6 15a6.5 6.5 0 0 0 11.5 1.5M6 4v3.5h3.5M18 20v-3.5h-3.5"/></symbol>
+  <symbol id="i-github" viewBox="0 0 16 16"><path d="M8 0c4.42 0 8 3.58 8 8a8.01 8.01 0 0 1-5.45 7.59c-.4.08-.55-.17-.55-.38 0-.27.01-1.13.01-2.2 0-.75-.25-1.23-.54-1.48 1.78-.2 3.65-.88 3.65-3.95 0-.88-.31-1.59-.82-2.15.08-.2.36-1.02-.08-2.12 0 0-.67-.22-2.2.82-.64-.18-1.32-.27-2-.27-.68 0-1.36.09-2 .27-1.53-1.03-2.2-.82-2.2-.82-.44 1.1-.16 1.92-.08 2.12-.51.56-.82 1.28-.82 2.15 0 3.06 1.86 3.75 3.64 3.95-.23.2-.44.55-.51 1.07-.46.21-1.61.55-2.33-.66-.15-.24-.6-.83-1.23-.82-.67.01-.27.38.01.53.34.19.73.9.82 1.13.16.45.68 1.31 2.69.94 0 .67.01 1.3.01 1.49 0 .21-.15.45-.55.38A8 8 0 0 1 0 8c0-4.42 3.58-8 8-8Z"/></symbol>
+  <symbol id="i-star" viewBox="0 0 16 16"><path d="M8 .25a.75.75 0 0 1 .67.42l1.89 3.81 4.2.62a.75.75 0 0 1 .42 1.28l-3.04 2.97.72 4.19a.75.75 0 0 1-1.09.79L8 12.35l-3.77 1.98a.75.75 0 0 1-1.09-.79l.72-4.19L.82 6.37a.75.75 0 0 1 .42-1.28l4.2-.61L7.33.67A.75.75 0 0 1 8 .25Z"/></symbol>
+  <symbol id="i-check" viewBox="0 0 16 16"><path d="M3 8.5 6.5 12 13 4.5"/></symbol>
+</svg>
+
+<header class="nav">
+  <div class="wrap nav-inner">
+    <a class="brand" href="/es/"><svg aria-hidden="true"><use href="#i-logo"/></svg>WP Updater</a>
+    <nav class="sections" aria-label="Secciones">
+      <a href="#features">Funciones</a>
+      <a href="#how">Cómo funciona</a>
+      <a href="#faq">Preguntas</a>
+    </nav>
+    <div class="nav-end">
+      <div class="lang" role="group" aria-label="Idioma">
+        <a href="/" hreflang="en" lang="en" aria-label="English">EN</a>
+        <a aria-current="page">ES</a>
+      </div>
+      <a class="button small nav-star" href="https://github.com/nicob201/wp-updater-free" target="_blank" rel="noopener" data-goatcounter-click="star-nav">
+        <svg aria-hidden="true"><use href="#i-star"/></svg>Estrella<span class="count" data-stars></span>
+      </a>
+      <a class="button primary small" href="https://github.com/nicob201/wp-updater-free/blob/main/README.es.md#inicio-rápido" target="_blank" rel="noopener" data-goatcounter-click="get-started-nav">Empezar</a>
+    </div>
+  </div>
+</header>
+
+<main>
+  <section class="hero wrap">
+    <h1>Todos tus sitios WordPress, actualizados desde una página</h1>
+    <p class="lead">Una herramienta gratuita que corre en tu computadora. Se conecta a tus servidores por SSH, hace una copia de la base de datos de cada sitio y actualiza WordPress, plugins, temas y traducciones en todos.</p>
+    <div class="actions">
+      <a class="button primary" href="https://github.com/nicob201/wp-updater-free/blob/main/README.es.md#inicio-rápido" target="_blank" rel="noopener" data-goatcounter-click="get-started-hero">Empezar</a>
+      <a class="button" href="#demo" data-goatcounter-click="try-demo">Prueba la demo <span aria-hidden="true">↓</span></a>
+      <a class="button" href="https://github.com/nicob201/wp-updater-free" target="_blank" rel="noopener" data-goatcounter-click="star-hero"><svg aria-hidden="true"><use href="#i-github"/></svg>Estrella en GitHub</a>
+    </div>
+    <ul class="trust">
+      <li><svg aria-hidden="true"><use href="#i-check"/></svg>Gratis y de código abierto (MIT)</li>
+      <li><svg aria-hidden="true"><use href="#i-check"/></svg>Sin cuenta</li>
+      <li><svg aria-hidden="true"><use href="#i-check"/></svg>Nada instalado en tus sitios</li>
+      <li><svg aria-hidden="true"><use href="#i-check"/></svg>Su clave SSH y tus copias quedan en tu computadora</li>
+    </ul>
+  </section>
+
+  <section id="demo" class="demo wrap" aria-label="Demo en vivo">
+    <div class="window">
+      <div class="window-bar">
+        <span class="dots" aria-hidden="true"><i></i><i></i><i></i></span>
+        <span class="url">localhost:8787</span>
+        <button id="demo-reset" class="reset" type="button" data-goatcounter-click="demo-reset">Reiniciar la demo</button>
+      </div>
+      <iframe id="demo-frame" src="/demo/" title="WP Updater, con sitios ficticios"></iframe>
+    </div>
+    <p class="note">Es la página real de WP Updater, en inglés como la herramienta, corriendo en tu navegador con servidores y sitios ficticios: nada de esto toca un sitio real. Haz clic en <strong lang="en">Update all</strong>, abre un sitio para ver qué cambió o excluye la copia de staging en <strong lang="en">Settings</strong>.</p>
+  </section>
+
+  <section id="features" class="section wrap">
+    <h2>Todo lo que hace</h2>
+    <p class="intro">Hecha para quienes cuidan muchos sitios WordPress de sus clientes, en hostings compartidos o en sus propios servidores.</p>
+    <div class="groups">
+      <div class="group">
+        <h3>Actualizaciones</h3>
+        <dl>
+          <div><dt>WordPress, plugins, temas y traducciones</dt><dd>En cada sitio con algo pendiente, uno detrás de otro, con un solo Update all. O un sitio a la vez.</dd></div>
+          <div><dt>Muchos servidores a la vez</dt><dd>Agrega cada servidor donde tengas acceso por SSH. En cada uno encuentra solo los sitios WordPress de la cuenta.</dd></div>
+          <div><dt>Qué tiene cada sitio</dt><dd>Su versión de WordPress, qué tiene pendiente con la versión actual y la nueva, y qué se actualizó después.</dd></div>
+          <div><dt>Lo que el servidor no puede aplicar</dt><dd>Cuando una versión nueva necesita un WordPress o un PHP más nuevo que el del sitio, como "Needs PHP 8.3", aparece en Can't update here y la herramienta la saltea.</dd></div>
+          <div><dt>Sigue aunque cierres la página</dt><dd>Vuelve a abrirla para ver el progreso, el tiempo que falta y el registro en vivo.</dd></div>
+        </dl>
+      </div>
+      <div class="group">
+        <h3>Seguridad</h3>
+        <dl>
+          <div><dt>Una copia verificada de la base de datos antes de cada sitio</dt><dd>Si la copia falla o sale incompleta, ese sitio no se actualiza.</dd></div>
+          <div><dt>Los duplicados nunca se actualizan</dt><dd>Dos instalaciones que comparten base de datos o dirección, como una copia de staging olvidada, quedan marcadas y no se tocan hasta que excluyas una.</dd></div>
+          <div><dt>Un control de que el sitio sigue cargando</dt><dd>Después de cada sitio, abre su dirección y espera una página que funcione. Si no la obtiene, el sitio queda marcado Check, con el motivo.</dd></div>
+          <div><dt>Exclusiones</dt><dd>Plugins, temas o sitios enteros que nunca deben actualizarse.</dd></div>
+          <div><dt>Nunca como root</dt><dd>Los archivos que escribe root rompen WordPress, así que Test connection rechaza una cuenta root.</dd></div>
+        </dl>
+      </div>
+      <div class="group">
+        <h3>Copias</h3>
+        <dl>
+          <div><dt>Copias completas en tu computadora</dt><dd>La base de datos y todos los archivos de los sitios que elijas, cuando quieras, sin las carpetas de copias de UpdraftPlus y WPvivid. Ves cuánto lugar ocupan antes de copiarlos.</dd></div>
+          <div><dt>Una copia fallida nunca reemplaza a una buena</dt><dd>Una copia completa reemplaza a la anterior solo cuando está terminada. Si falla, la anterior se queda.</dd></div>
+          <div><dt>Restaurar</dt><dd>El README tiene los comandos para volver a poner la base de datos de un sitio, un solo plugin o un sitio entero desde su copia completa.</dd></div>
+        </dl>
+      </div>
+    </div>
+  </section>
+
+  <section class="wrap" aria-labelledby="try-title">
+    <div class="band">
+      <div>
+        <h2 id="try-title">Pruébala primero en tu computadora</h2>
+        <p>La herramienta trae un servidor de demo propio, con sitios desactualizados para actualizar. Necesitas <a href="https://www.docker.com/products/docker-desktop/" target="_blank" rel="noopener">Docker Desktop</a> y <a href="https://git-scm.com/downloads" target="_blank" rel="noopener">git</a>. Después abre <span class="code-inline">localhost:8787</span> y agrega un servidor con host <span class="code-inline">demo</span>, puerto 22 y usuario <span class="code-inline">demo</span>, como muestra el README.</p>
+      </div>
+      <div class="band-end">
+        <div class="copy">
+          <pre><code>git clone https://github.com/nicob201/wp-updater-free.git
+cd wp-updater-free
+docker compose --profile demo up -d</code></pre>
+          <button class="copy-button" type="button" aria-live="polite" data-copy="git clone https://github.com/nicob201/wp-updater-free.git&#10;cd wp-updater-free&#10;docker compose --profile demo up -d" data-goatcounter-click="copy-demo">Copiar</button>
+        </div>
+        <a class="button primary" href="https://github.com/nicob201/wp-updater-free/blob/main/README.es.md#inicio-rápido" target="_blank" rel="noopener" data-goatcounter-click="get-started-mid">Empezar</a>
+      </div>
+    </div>
+  </section>
+
+  <section id="how" class="section wrap">
+    <h2>Cómo funciona</h2>
+    <ol class="steps">
+      <li>
+        <h3>Instálala</h3>
+        <p>Necesitas Docker Desktop y git. Corre esto y después abre <span class="code-inline">localhost:8787</span>. Vuelve a arrancar sola cada vez que arranca Docker.</p>
+        <div class="copy">
+          <pre><code>git clone https://github.com/nicob201/wp-updater-free.git
+cd wp-updater-free
+docker compose up -d</code></pre>
+          <button class="copy-button" type="button" aria-live="polite" data-copy="git clone https://github.com/nicob201/wp-updater-free.git&#10;cd wp-updater-free&#10;docker compose up -d" data-goatcounter-click="copy-install">Copiar</button>
+        </div>
+      </li>
+      <li>
+        <h3>Agrega tu servidor</h3>
+        <p>Copia la clave SSH de la herramienta en el panel de tu hosting, después agrega el host, el puerto y el usuario del servidor y haz clic en Test connection. Para Hostinger, cPanel y SiteGround, el formulario muestra dónde está cada dato.</p>
+      </li>
+      <li>
+        <h3>Update all</h3>
+        <p>Check for updates muestra qué hay pendiente en cada sitio. Update all hace una copia de cada base de datos y actualiza los sitios, uno detrás de otro.</p>
+      </li>
+    </ol>
+    <p class="more"><a class="button primary" href="https://github.com/nicob201/wp-updater-free/blob/main/README.es.md#inicio-rápido" target="_blank" rel="noopener" data-goatcounter-click="get-started-how">Empezar</a> <a class="text-link" href="https://github.com/nicob201/wp-updater-free/blob/main/README.es.md#conecta-tu-servidor" target="_blank" rel="noopener">Lee la guía completa</a></p>
+  </section>
+
+  <section id="yours" class="section wrap">
+    <h2>Tus sitios siguen siendo tuyos</h2>
+    <dl class="facts">
+      <div><dt>Solo tu computadora puede entrar</dt><dd>La página vive en localhost. Nada escucha en tu red ni en internet.</dd></div>
+      <div><dt>Todo queda en tu disco</dt><dd>Tu configuración y tus copias están en la carpeta <span class="code-inline">data</span> de la herramienta, y su clave SSH en un volumen de Docker.</dd></div>
+      <div><dt>Sin nube ni cuenta</dt><dd>No hay ningún servicio en el medio con acceso a los sitios de tus clientes, ni nada en lo que registrarte.</dd></div>
+      <div><dt>Código abierto</dt><dd>Con licencia MIT. Puedes leer cada línea que corre en tus servidores.</dd></div>
+    </dl>
+  </section>
+
+  <section id="next" class="section wrap">
+    <h2>Lo que viene</h2>
+    <p class="intro">Planeado, todavía no está en la herramienta.</p>
+    <dl class="facts">
+      <div><dt>Deshacer una actualización</dt><dd>Un botón para dejar un sitio como estaba antes de su última actualización: su base de datos de justo antes y las versiones de plugins y temas que tenía. Hoy se hace con los comandos del README.</dd></div>
+      <div><dt>Restaurar una copia completa</dt><dd>Traer de vuelta un sitio entero desde su copia completa, archivos y base de datos, desde la página Sites. Hoy, con los comandos del README.</dd></div>
+      <div><dt>Actualizaciones programadas</dt><dd>Eliges un día y una hora, y la herramienta actualiza tus sitios sola mientras está corriendo.</dd></div>
+    </dl>
+    <p class="more">¿Falta algo? <a class="text-link" href="https://github.com/nicob201/wp-updater-free/issues/new" target="_blank" rel="noopener" data-goatcounter-click="open-issue">Abre un issue</a></p>
+  </section>
+
+  <section id="faq" class="section wrap">
+    <h2>Preguntas</h2>
+    <div class="faq">
+      <details>
+        <summary>¿Es gratis de verdad?</summary>
+        <p>Sí. Es de código abierto con licencia MIT, sin plan de pago y sin cuenta.</p>
+      </details>
+      <details>
+        <summary>¿Qué instala en mis sitios?</summary>
+        <p>Nada. Entra por SSH con su propia clave y usa WP-CLI, que la mayoría de los hostings ya tiene.</p>
+      </details>
+      <details>
+        <summary>¿Con qué hostings funciona?</summary>
+        <p>Con cualquier hosting que te dé acceso SSH con clave, bash, WP-CLI y mysqldump o mariadb-dump. La mayoría de los hostings compartidos los tiene, y en un VPS los puedes instalar. Las copias completas además necesitan rsync. Test connection revisa todo y te dice qué falta.</p>
+        <p>Por ahora, el listado de sitios se probó en Hostinger, y las actualizaciones en el servidor de demo de la herramienta. cPanel, SiteGround y VPS todavía no se probaron: si la pruebas en alguno, <a class="text-link" href="https://github.com/nicob201/wp-updater-free/issues/new" target="_blank" rel="noopener">abre un issue</a> para contar cómo te fue.</p>
+      </details>
+      <details>
+        <summary>¿Y si una actualización rompe un sitio?</summary>
+        <p>Antes de cada sitio, la herramienta guarda su base de datos y revisa que la copia esté completa. Después de cada sitio, carga su dirección, y un sitio que no responde con una página que funcione queda marcado Check. El README tiene los comandos para volver a poner la base de datos o un solo plugin y, si hiciste una copia completa con Back up sites…, el sitio entero. Como con cualquier actualización, pruébala primero en un sitio de staging.</p>
+      </details>
+      <details>
+        <summary>¿Funciona en Windows y Mac?</summary>
+        <p>Sí, con Docker Desktop. Se probó en macOS y en Windows 11. En Linux también funciona Docker Engine con el plugin de Compose.</p>
+      </details>
+      <details>
+        <summary>¿Por qué no ManageWP o MainWP?</summary>
+        <p>Son buenas herramientas y hacen más que esta, como monitorear que los sitios estén en línea y armar reportes para clientes. Las dos necesitan un plugin en cada sitio que administras: ManageWP corre en su propia nube, con acceso a todos tus sitios, y MainWP funciona como plugin en un WordPress propio, que hace de panel. WP Updater no instala nada en tus sitios y corre solo en tu computadora, sin cuenta y sin pagar nada. Si necesitas monitoreo y reportes, usa una de ellas. Si quieres actualizar con una copia antes y sin agregar nada a tus sitios, prueba esta.</p>
+      </details>
+    </div>
+  </section>
+
+  <section class="final wrap" aria-labelledby="final-title">
+    <h2 id="final-title">Mantén cada sitio al día, desde tu propia computadora</h2>
+    <p>Si te ahorra tiempo, una estrella en GitHub ayuda a que otras personas la encuentren.</p>
+    <div class="actions">
+      <a class="button primary" href="https://github.com/nicob201/wp-updater-free/blob/main/README.es.md#inicio-rápido" target="_blank" rel="noopener" data-goatcounter-click="get-started-final">Empezar</a>
+      <a class="button" href="https://github.com/nicob201/wp-updater-free" target="_blank" rel="noopener" data-goatcounter-click="star-final"><svg aria-hidden="true"><use href="#i-star"/></svg>Ayúdame con una estrella en GitHub</a>
+    </div>
+  </section>
+</main>
+
+<footer class="footer">
+  <div class="wrap footer-inner">
+    <p class="made">Desarrollado por amor al arte ♥ por Nicolas Boscasso</p>
+    <nav class="footer-links" aria-label="El autor">
+      <a href="https://github.com/nicob201" target="_blank" rel="noopener">GitHub</a>
+      <a href="https://nicolas-boscasso.vercel.app/" target="_blank" rel="noopener">Portafolio</a>
+      <a href="https://www.linkedin.com/in/nicolas-boscasso/" target="_blank" rel="noopener">LinkedIn</a>
+    </nav>
+    <p class="fine">Licencia MIT.<span data-version-line hidden> La demo muestra WP Updater <span data-version></span>.</span></p>
+  </div>
+</footer>
+</body>
+</html>
