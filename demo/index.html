@@ -1,0 +1,161 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="robots" content="noindex">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="color-scheme" content="dark">
+<title>WP Updater</title>
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Crect width='32' height='32' rx='8' fill='%23000'/%3E%3Cpath d='M23 12a8 8 0 0 0-14-2M9 20a8 8 0 0 0 14 2M9 6v4h4M23 26v-4h-4' fill='none' stroke='%23fff' stroke-width='2.6' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Geist:wght@400;500;600&family=Geist+Mono:wght@400;500&display=swap">
+<link rel="stylesheet" href="styles.css">
+</head>
+<body>
+<nav class="nav">
+  <div class="nav-inner">
+    <span class="brand">
+      <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M18 9a6.5 6.5 0 0 0-11.5-1.5M6 15a6.5 6.5 0 0 0 11.5 1.5M6 4v3.5h3.5M18 20v-3.5h-3.5"/></svg>
+      WP Updater
+    </span>
+    <div class="switch">
+      <a id="to-sites" href="#">Sites</a>
+      <a id="to-settings" href="#settings">Settings</a>
+    </div>
+    <span id="srv" class="indicator"><i class="dot"></i><span>Connecting…</span></span>
+  </div>
+</nav>
+
+<main id="view-sites" class="page">
+  <header class="header">
+    <div>
+      <h1>Sites</h1>
+      <p class="sub"><span id="count"></span><span id="checked"></span></p>
+    </div>
+    <div class="actions">
+      <button id="check" class="button secondary" type="button" disabled>Check for updates</button>
+      <button id="all" class="button primary" type="button" disabled>Update all</button>
+    </div>
+  </header>
+
+  <p id="notice" class="notice" hidden>The last update stopped before finishing. Check the log.</p>
+
+  <section id="progress" class="progress" hidden aria-live="polite">
+    <div class="progress-text">
+      <p><strong id="progress-title"></strong> <span id="progress-detail" class="muted"></span></p>
+      <span id="progress-left" class="mono muted"></span>
+    </div>
+    <div class="bar"><i id="progress-bar"></i></div>
+  </section>
+
+  <section id="backups" class="backups" hidden>
+    <p><span class="info" aria-hidden="true">i</span><span id="backups-text"></span></p>
+    <button id="backup-open" class="button secondary small" type="button" aria-expanded="false" aria-controls="backup-panel">Back up sites…</button>
+  </section>
+
+  <section id="backup-panel" class="card" hidden aria-labelledby="backup-title">
+    <div class="card-head">
+      <h2 id="backup-title">Back up sites</h2>
+      <label class="check"><input id="backup-all" type="checkbox"> Select all</label>
+    </div>
+    <div id="backup-list" class="items"></div>
+    <p id="backup-total" class="help" aria-live="polite"></p>
+    <p id="backup-error" class="error-text" aria-live="polite"></p>
+    <div class="card-row">
+      <span class="form-buttons">
+        <button id="backup-cancel" class="button secondary small" type="button">Cancel</button>
+        <button id="backup-start" class="button primary small" type="button" disabled>Back up 0 sites</button>
+      </span>
+    </div>
+  </section>
+
+  <div id="sites" class="groups"></div>
+  <p id="excluded" class="excluded" hidden><span></span> · <a href="#settings">Manage in Settings</a></p>
+
+  <details id="log" class="log">
+    <summary>Live log</summary>
+    <pre id="log-text"></pre>
+  </details>
+</main>
+
+<main id="view-settings" class="page" hidden>
+  <header class="header">
+    <div>
+      <h1>Settings</h1>
+      <p class="sub">Saved as soon as you change something.</p>
+    </div>
+  </header>
+
+  <p id="locked" class="notice" hidden>Settings are locked while an update is running.</p>
+
+  <fieldset id="settings-fields" class="cards">
+    <section class="card">
+      <h2>SSH key</h2>
+      <textarea id="key" class="key" rows="3" readonly aria-label="Public SSH key"></textarea>
+      <div class="card-row">
+        <button id="copy" class="button secondary small" type="button">Copy</button>
+        <p class="help">Add it to the authorized keys of each server's SSH account. The <a href="https://github.com/nicob201/wp-updater-free#readme" target="_blank" rel="noopener">README</a> shows how.</p>
+      </div>
+    </section>
+
+    <section class="card">
+      <div class="card-head">
+        <h2>Servers</h2>
+        <button id="add-server" class="button secondary small" type="button">Add server</button>
+      </div>
+      <div id="server-list" class="items"></div>
+      <p id="server-error" class="error-text" aria-live="polite"></p>
+      <form id="server-form" class="server-form" novalidate hidden>
+        <h3 id="form-title">Add server</h3>
+        <div class="fields">
+          <label class="wide">Hosting<select name="hosting">
+            <option value="">Choose yours to fill in the port</option>
+            <option value="hostinger">Hostinger</option>
+            <option value="cpanel">cPanel</option>
+            <option value="siteground">SiteGround</option>
+            <option value="other">VPS / Other</option>
+          </select></label>
+          <p id="hosting-help" class="help wide" hidden></p>
+          <label>Name<input name="name" maxlength="60" autocomplete="off"></label>
+          <label>Host<input name="host" placeholder="example.com or 203.0.113.10" autocomplete="off" autocapitalize="off" spellcheck="false"></label>
+          <label>Port<input name="port" type="number" min="1" max="65535" value="22"></label>
+          <label>User<input name="user" autocomplete="off" autocapitalize="off" spellcheck="false"></label>
+          <label class="wide">Sites path<input name="path" placeholder="Home folder" autocomplete="off" autocapitalize="off" spellcheck="false"></label>
+        </div>
+        <p id="form-error" class="error-text" aria-live="polite"></p>
+        <div class="card-row">
+          <button id="test" class="button secondary small" type="button">Test connection</button>
+          <span id="test-result" class="test-result" aria-live="polite"></span>
+          <span class="form-buttons">
+            <button id="cancel" class="button secondary small" type="button">Cancel</button>
+            <button class="button primary small" type="submit">Save</button>
+          </span>
+        </div>
+      </form>
+    </section>
+
+    <section class="card">
+      <h2>Excluded plugins &amp; themes</h2>
+      <p class="help">Never updated on any site. They still show in each site's table, marked as excluded.</p>
+      <div id="chips" class="chips"></div>
+      <form id="exclude-form" class="card-row" novalidate>
+        <input id="exclude-input" placeholder="Plugin or theme slug, e.g. elementor-pro" aria-label="Plugin or theme slug" autocomplete="off" autocapitalize="off" spellcheck="false">
+        <button class="button secondary small" type="submit">Add</button>
+      </form>
+      <p id="exclude-error" class="error-text" aria-live="polite"></p>
+    </section>
+
+    <section class="card">
+      <h2>Excluded sites</h2>
+      <p class="help">Excluded sites are never checked nor updated.</p>
+      <div id="excluded-sites" class="items"></div>
+      <p id="sites-error" class="error-text" aria-live="polite"></p>
+    </section>
+  </fieldset>
+</main>
+
+<script src="bridge.js"></script>
+<script src="app.js"></script>
+</body>
+</html>
