@@ -13,13 +13,14 @@ const CLICKS = ['get-started-nav', 'get-started-hero', 'get-started-mid', 'get-s
                 'star-nav', 'star-hero', 'star-final', 'copy-install', 'copy-demo', 'demo-reset', 'open-issue'];
 
 // What each language must say, in its own words
+const SITE = 'https://wp-updater-free-site.vercel.app';
 const PAGES = [
-  { lang: 'en', html: EN, start: 'https://github.com/nicob201/wp-updater-free#quick-start',
+  { lang: 'en', html: EN, url: `${SITE}/`, image: `${SITE}/assets/og.png`, locale: 'en_US', counts: /counts visits and clicks with <a[^>]*>GoatCounter<\/a>, without cookies and without storing anything that identifies you\./, start: 'https://github.com/nicob201/wp-updater-free#quick-start',
     made: /Made for the love of it ♥ by Nicolas Boscasso/, compare: /Why not ManageWP or MainWP\?/,
     planned: /id="next"[\s\S]*Planned, not in the tool yet\./,
     untested: /cPanel, SiteGround and VPS aren't tested yet/, dump: /mysqldump or mariadb-dump/,
     key: /SSH key[^.]*Docker volume/, keyInData: /SSH key[^.]*<span class="code-inline">data<\/span> folder/ },
-  { lang: 'es', html: ES, start: 'https://github.com/nicob201/wp-updater-free/blob/main/README.es.md#inicio-rápido',
+  { lang: 'es', html: ES, url: `${SITE}/es/`, image: `${SITE}/assets/og-es.png`, locale: 'es_LA', counts: /cuenta visitas y clics con <a[^>]*>GoatCounter<\/a>, sin cookies y sin guardar nada que te identifique\./, start: 'https://github.com/nicob201/wp-updater-free/blob/main/README.es.md#inicio-rápido',
     made: /Desarrollado por amor al arte ♥ por Nicolas Boscasso/, compare: /¿Por qué no ManageWP o MainWP\?/,
     planned: /id="next"[\s\S]*Planeado, todavía no está en la herramienta\./,
     untested: /cPanel, SiteGround y VPS todavía no se probaron/, dump: /mysqldump o mariadb-dump/,
@@ -89,11 +90,55 @@ for (const p of PAGES) {
     for (const tag of html.match(/<a [^>]*target="_blank"[^>]*>/g) || []) assert.match(tag, /rel="noopener"/, tag);
   });
 
-  test(`${p.lang}: it points at the other language`, () => {
-    assert.match(html, /<link rel="alternate" hreflang="en" href="\/">/);
-    assert.match(html, /<link rel="alternate" hreflang="es" href="\/es\/">/);
+  test(`${p.lang}: it points at the other language, with full URLs as search engines need`, () => {
+    assert.ok(html.includes(`<link rel="alternate" hreflang="en" href="${SITE}/">`));
+    assert.ok(html.includes(`<link rel="alternate" hreflang="es" href="${SITE}/es/">`));
+    assert.ok(html.includes(`<link rel="alternate" hreflang="x-default" href="${SITE}/">`));
+    assert.ok(html.includes(`<link rel="canonical" href="${p.url}">`));
+  });
+
+  test(`${p.lang}: it counts visits and clicks with GoatCounter, and says so`, () => {
+    assert.ok(html.includes('<script data-goatcounter="https://nicob201.goatcounter.com/count" async src="//gc.zgo.at/count.js"></script>'));
+    assert.match(html, p.counts);
+  });
+
+  test(`${p.lang}: a shared link shows a title, a description and an image`, () => {
+    const meta = name => html.match(new RegExp(`<meta (?:property|name)="${name}" content="([^"]*)">`))?.[1];
+    assert.equal(meta('og:url'), p.url);
+    assert.equal(meta('og:image'), p.image);
+    assert.equal(meta('og:image:width'), '1200');
+    assert.equal(meta('og:image:height'), '630');
+    assert.equal(meta('og:locale'), p.locale);
+    assert.equal(meta('og:type'), 'website');
+    assert.equal(meta('twitter:card'), 'summary_large_image');
+    assert.ok(meta('og:title') && meta('og:description') && meta('og:image:alt'));
+    assert.equal(meta('og:title'), html.match(/<title>([^<]*)<\/title>/)[1]);
+    assert.equal(meta('og:description'), meta('description'));
+    // The image's alt text says what's written on it, and X reads its own tag
+    assert.ok(meta('og:image:alt').startsWith(html.match(/<h1>([^<]*)<\/h1>/)[1]));
+    assert.equal(meta('twitter:image:alt'), meta('og:image:alt'));
+  });
+
+  test(`${p.lang}: every tracked click has a readable title in GoatCounter`, () => {
+    // Without one, count.js records the element's HTML, icons included
+    const tags = html.match(/<(?:a|button) [^>]*data-goatcounter-click="[^"]*"[^>]*>/g);
+    assert.equal(tags.length, CLICKS.length);
+    for (const tag of tags) assert.match(tag, /data-goatcounter-title="[A-Z][^"<]+"/, tag);
   });
 }
+
+test('the demo inside the page counts nothing by itself', () => {
+  // count.js would skip it as a frame anyway: demo use is counted through the page around it
+  assert.doesNotMatch(read('demo/index.html'), /goatcounter/);
+});
+
+test('the share images are 1200 × 630 PNGs', () => {
+  for (const file of ['og.png', 'og-es.png']) {
+    const png = fs.readFileSync(path.join(__dirname, '..', 'assets', file));
+    assert.equal(png.subarray(1, 4).toString(), 'PNG', file);
+    assert.deepEqual([png.readUInt32BE(16), png.readUInt32BE(20)], [1200, 630], file);
+  }
+});
 
 test('both languages have the same sections, hooks and tracked clicks, in the same order', () => {
   assert.deepEqual(attrs(ES, 'id'), attrs(EN, 'id'));
