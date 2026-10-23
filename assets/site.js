@@ -7,7 +7,8 @@ const COPIED = { en: 'Copied', es: 'Copiado' }[lang];
 for (const button of $$('[data-copy]')) {
   const label = button.textContent;
   button.addEventListener('click', () => {
-    navigator.clipboard.writeText(button.dataset.copy).then(() => {
+    // Promise.resolve: where there's no clipboard at all (plain http), writeText throws instead of rejecting
+    Promise.resolve().then(() => navigator.clipboard.writeText(button.dataset.copy)).then(() => {
       button.textContent = COPIED;
       setTimeout(() => { button.textContent = label; }, 2000);
     }, () => getSelection().selectAllChildren(button.previousElementSibling));   // no clipboard: select it to copy by hand
@@ -25,8 +26,12 @@ fetch('https://api.github.com/repos/nicob201/wp-updater-free')
 
 fetch('/demo/version.txt')
   .then(res => (res.ok ? res.text() : ''))
-  .then(version => { for (const el of $$('[data-version]')) el.textContent = version.trim(); })
+  .then(version => {
+    if (!version.trim()) return;
+    for (const el of $$('[data-version]')) el.textContent = version.trim();
+    for (const el of $$('[data-version-line]')) el.hidden = false;
+  })
   .catch(() => {});
 
-// The demo keeps everything in memory: loading it again starts over
-document.getElementById('demo-reset')?.addEventListener('click', () => document.getElementById('demo-frame').contentWindow.location.reload());
+// The demo keeps everything in memory: loading it again starts over, on its first page (not #settings)
+document.getElementById('demo-reset')?.addEventListener('click', () => document.getElementById('demo-frame').contentWindow.location.replace('/demo/'));
