@@ -3,6 +3,14 @@
 // and feeds the tool's own lib/state.js the lines updater.sh would print: what the page shows is decided
 // by the tool's code, not by an imitation of it. Nothing here touches the network.
 (() => {
+  // The sha256 of the tool's files this bridge re-implements, as they were when it was last compared with them
+  // (v0.2.2). When a release changes one, test/drift.test.js fails: compare, update the bridge, then these
+  const PORTED_FROM = {
+    'server.js': 'b985233f24ce3f49c0cd759d889b12e261d8ee1dfe429f530c2909efa9a05c94',
+    'updater.sh': '5f894ef7ae71011f454d8a68f954b19f328aa565701f5eedb388f2be1b179e32',
+    'lib/backups.js': '19e43a495fac396581703bb0bc4dcd3fe14d020ec7ca0b3d870908fae469fa48',
+    'lib/run.js': '01a9a53e9837d3980fb70b621735dd6a50e31994a430225476799d76b76046e1',
+  };
   // How long each fake line takes to arrive, in ms: short, but slow enough to watch
   const T = { line: 150, site: 400, dump: 900, download: 450, check: 700, copy: 1600, size: 350, test: 800 };
   const PUSH = 200;   // like server.js: at most one state push every 200 ms
@@ -421,6 +429,6 @@
     };
   }
 
-  if (typeof window === 'undefined') module.exports = { createFake, run, T, SERVERS };
+  if (typeof window === 'undefined') module.exports = { createFake, run, PORTED_FROM, T, SERVERS };
   else install();
 })();

@@ -4,7 +4,7 @@ const test = require('node:test');
 const assert = require('node:assert/strict');
 const fs = require('node:fs');
 const path = require('node:path');
-const { createFake, run } = require('../demo/bridge.js');
+const { createFake, run, PORTED_FROM } = require('../demo/bridge.js');
 
 const read = file => fs.readFileSync(path.join(__dirname, '..', 'demo', file), 'utf8');
 const APP = read('app.js');
@@ -31,4 +31,15 @@ test('the fake sets every state field app.js reads', t => {
 test("a module that requires something the demo doesn't have stops loudly", () => {
   assert.throws(() => run("const util = require('node:util'); module.exports = util.format('x');"), /requires node:util, which the demo doesn't have/);
   assert.match(C.validate({ servers: [{ name: 'New', host: 'new.example', user: 'me' }] }).servers[0].id, /^[a-f0-9]{8}$/);
+});
+
+test('app.js listens only to the events the fake sends', () => {
+  assert.deepEqual([...APP.matchAll(/source\.addEventListener\('(\w+)'/g)].map(m => m[1]), ['state', 'log']);
+});
+
+test('the bridge was checked against the tool files of this release', () => {
+  const now = JSON.parse(read('upstream.json'));
+  const changed = Object.keys(now).filter(f => PORTED_FROM[f] !== now[f]);
+  assert.deepEqual(changed, [], `The release changed ${changed.join(', ')}: compare demo/bridge.js with them, then copy their hashes from demo/upstream.json into PORTED_FROM`);
+  assert.deepEqual(Object.keys(PORTED_FROM), Object.keys(now));
 });

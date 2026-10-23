@@ -4,6 +4,7 @@
 //        node scripts/sync-demo.js --check  fails if demo/ doesn't match the tag in demo/version.txt
 const fs = require('node:fs');
 const path = require('node:path');
+const { createHash } = require('node:crypto');
 
 const REPO = 'nicob201/wp-updater-free';
 const DEMO = path.join(__dirname, '..', 'demo');
@@ -16,6 +17,9 @@ const FILES = [
   ['lib/state.js', 'state.js'],
   ['lib/config.js', 'config.js'],
 ];
+// The tool's files bridge.js re-implements. Their sha256 goes to demo/upstream.json: when a release changes
+// one, test/drift.test.js fails until someone compares bridge.js with it
+const PORTED = ['server.js', 'updater.sh', 'lib/backups.js', 'lib/run.js'];
 
 // The tool's page loads its files from the root and talks to its own server; the demo lives in a folder
 // and talks to bridge.js. Each anchor must be there exactly once, so a changed page stops the sync
@@ -43,11 +47,15 @@ async function get(url) {
 // What demo/ holds for a tag, by file name. Everything is fetched before anything is written:
 // a failed fetch leaves demo/ as it was
 async function build(tag) {
+  const raw = async file => (await get(`https://raw.githubusercontent.com/${REPO}/${tag}/${file}`)).text();
   const files = {};
   for (const [from, to] of FILES) {
-    const text = await (await get(`https://raw.githubusercontent.com/${REPO}/${tag}/${from}`)).text();
+    const text = await raw(from);
     files[to] = to === 'index.html' ? demoPage(text) : text;
   }
+  const hashes = {};
+  for (const file of PORTED) hashes[file] = createHash('sha256').update(await raw(file)).digest('hex');
+  files['upstream.json'] = `${JSON.stringify(hashes, null, 2)}\n`;
   files['version.txt'] = `${tag}\n`;
   return files;
 }
@@ -75,4 +83,4 @@ async function main(arg) {
 
 if (require.main === module) main(process.argv[2]).catch(err => { console.error(err.message); process.exit(1); });
 
-module.exports = { demoPage, FILES };
+module.exports = { demoPage, FILES, PORTED };

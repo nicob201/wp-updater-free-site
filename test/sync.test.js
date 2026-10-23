@@ -1,6 +1,6 @@
 const test = require('node:test');
 const assert = require('node:assert/strict');
-const { demoPage, FILES } = require('../scripts/sync-demo.js');
+const { demoPage, FILES, PORTED } = require('../scripts/sync-demo.js');
 
 // The parts of the tool's public/index.html the sync rewrites
 const SAMPLE = `<!doctype html>
@@ -34,4 +34,8 @@ test('a changed index.html stops the sync instead of shipping a broken demo', ()
 test('it copies the page and the two state modules', () => {
   assert.deepEqual(FILES.map(f => f[1]), ['index.html', 'app.js', 'styles.css', 'state.js', 'config.js']);
   assert.deepEqual(FILES.map(f => f[0]), ['public/index.html', 'public/app.js', 'public/styles.css', 'lib/state.js', 'lib/config.js']);
+});
+
+test('it records the tool files the bridge re-implements', () => {
+  assert.deepEqual(PORTED, ['server.js', 'updater.sh', 'lib/backups.js', 'lib/run.js']);
 });

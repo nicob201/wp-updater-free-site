@@ -22,7 +22,13 @@ To move the demo to the latest release of the tool:
 node scripts/sync-demo.js
 ```
 
-Then try the demo, run the tests and commit. Don't edit the copied files by hand (everything in `demo/` except `bridge.js`): CI checks that they match the tag in `demo/version.txt`, and every Monday it checks that the tag is still the latest release. When a release needs something the bridge doesn't do, `test/drift.test.js` fails.
+Then try the demo, run the tests and commit. Don't edit the copied files by hand (everything in `demo/` except `bridge.js`): CI checks that they match the tag in `demo/version.txt`, and every Monday it checks that the tag is still the latest release.
+
+`test/drift.test.js` fails when a release asks the bridge for something new:
+
+- a route, an event or a state field that `app.js` uses and the bridge doesn't have;
+- a module the tool's code requires that the page can't load;
+- a change in a tool file the bridge re-implements (`server.js`, `updater.sh`, `lib/backups.js`, `lib/run.js`). The sync records their hashes in `demo/upstream.json`. Compare `bridge.js` with the changed files and update it, then copy the new hashes into `PORTED_FROM` at the top of `bridge.js`.
 
 ## Tests
 
