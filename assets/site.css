@@ -91,7 +91,7 @@ svg { width: 16px; height: 16px; flex: none; }
 .brand { display: inline-flex; align-items: center; gap: 10px; font-weight: 600; text-decoration: none; white-space: nowrap; }
 .brand svg { width: 22px; height: 22px; fill: none; stroke: currentColor; stroke-width: 2; stroke-linecap: round; stroke-linejoin: round; }
 .sections { display: flex; gap: 24px; font-size: 14px; color: var(--muted); }
-.sections a { text-decoration: none; }
+.sections a { text-decoration: none; white-space: nowrap; }
 .sections a:hover { color: var(--text); }
 .nav-end { margin-left: auto; display: flex; align-items: center; gap: 8px; }
 
@@ -273,6 +273,11 @@ dd { margin-top: 4px; color: var(--muted); }
   .band { grid-template-columns: minmax(0, 1fr); padding: 28px; }
 }
 
+/* Tablets in portrait: the section links need the room; the hero has its own star button */
+@media (max-width: 820px) {
+  .nav-star { display: none; }
+}
+
 @media (max-width: 720px) {
   :root { --gutter: 16px; }
   .sections { display: none; }
@@ -288,7 +293,8 @@ dd { margin-top: 4px; color: var(--muted); }
   .window-bar { grid-template-columns: auto 1fr; gap: 12px; }
   .url { min-width: 0; text-align: left; }
   .window iframe { height: 560px; }
-  .actions .button { flex: 1 1 auto; justify-content: center; }
+  /* Full-width buttons, and a long label (like the Spanish star request) wraps instead of overflowing */
+  .actions .button { flex: 1 1 auto; justify-content: center; height: auto; min-height: 40px; padding: 7px 16px; white-space: normal; text-align: center; text-wrap: balance; }
   .band { padding: 20px; }
 }
 
