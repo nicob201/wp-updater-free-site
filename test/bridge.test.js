@@ -285,3 +285,41 @@ test("each server lists the sites under its sites path, like updater.sh's find",
   // find looks 5 levels deep: from /home, staging's wp-load.php is 6 levels down
   assert.deepEqual(await listWith({ [SHARED]: '/home', [VPS]: '/var' }), [BLOG, CLINIC, NEWS, PORTFOLIO, SHOP].sort());
 });
+
+test('the live log reads like updater.sh and WP-CLI', async t => {
+  const { fake } = boot(t);
+  settle(t);
+  await fake.request('/api/update', { sites: [NEWS] });
+  settle(t);
+  const from = fake.state.log.indexOf(`===== [1/1] ${NEWS}`);
+  assert.deepEqual(fake.state.log.slice(from, fake.state.log.indexOf('END code=0', from) + 1), [
+    `===== [1/1] ${NEWS}`,
+    `== ${NEWS}: database backup`,
+    `== ${NEWS}: updating`,
+    'Updating to version 7.1.3 (en_US)...',
+    'Downloading update from https://downloads.wordpress.org/release/wordpress-7.1.3-no-content.zip...',
+    'Unpacking the update...',
+    'Cleaning up files...',
+    'No files found that need cleaning up',
+    'Success: WordPress updated successfully.',
+    'Success: WordPress database upgraded successfully from db version 61833 to 62012.',
+    'Enabling Maintenance mode...',
+    'Downloading update from https://downloads.wordpress.org/plugin/akismet.5.6.zip...',
+    'Unpacking the update...',
+    'Installing the latest version...',
+    'Removing the old version of the plugin...',
+    'Plugin updated successfully.',
+    'Disabling Maintenance mode...',
+    'name\told_version\tnew_version\tstatus',
+    'akismet\t5.5\t5.6\tUpdated',
+    'Success: Updated 1 of 1 plugins.',
+    'Success: Theme already updated.',
+    'Success: Translations are up to date.',
+    'Success: Translations are up to date.',
+    'Success: Translations are up to date.',
+    'Success: The cache was flushed.',
+    `== ${NEWS}: OK`,
+    '',   // lib/run.js puts END on its own line
+    'END code=0',
+  ]);
+});

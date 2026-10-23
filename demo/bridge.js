@@ -21,6 +21,8 @@
     { id: 'e5f6a7b8', name: 'VPS', host: 'vps.example', port: 22, user: 'deploy', path: '/var/www' },
   ];
   const DAY = 86400000;
+  // The database version of each fake WordPress release, as `wp core update-db` reports it
+  const DB_VERSION = { '6.8.3': 60421, '6.9.1': 60717, '7.0.2': 61833, '7.1.3': 62012 };
 
   // A plugin or theme as `wp plugin list --format=json` prints it
   const item = (name, version, next = '', more = {}) =>
@@ -108,18 +110,22 @@
       const v = newest(s.core);
       lines.push(`Updating to version ${v} (en_US)...`,
         `Downloading update from https://downloads.wordpress.org/release/wordpress-${v}-no-content.zip...`,
-        'Unpacking the update...', 'Installing the latest version...', 'Success: WordPress updated successfully.');
-    }
+        'Unpacking the update...', 'Cleaning up files...', 'No files found that need cleaning up',
+        'Success: WordPress updated successfully.',
+        `Success: WordPress database upgraded successfully from db version ${DB_VERSION[s.wp]} to ${DB_VERSION[v]}.`);
+    } else lines.push('Success: WordPress is up to date.', `Success: WordPress database already at latest db version ${DB_VERSION[s.wp]}.`);
     for (const [type, items] of [['plugin', s.plugins], ['theme', s.themes]]) {
+      const Type = `${type[0].toUpperCase()}${type.slice(1)}`;
       const todo = updatable(items, exclude);
-      if (!todo.length) continue;
+      if (!todo.length) { lines.push(`Success: ${Type} already updated.`); continue; }
+      lines.push('Enabling Maintenance mode...');
       for (const x of todo) lines.push(`Downloading update from https://downloads.wordpress.org/${type}/${x.name}.${x.update_version}.zip...`,
-        'Unpacking the update...', 'Installing the latest version...', `Removing the old version of the ${type}...`,
-        `${type[0].toUpperCase()}${type.slice(1)} updated successfully.`);
-      lines.push('name\told_version\tnew_version\tstatus', ...todo.map(x => `${x.name}\t${x.version}\t${x.update_version}\tUpdated`),
-        `Success: Updated ${todo.length} of ${todo.length} ${type}s.`);
+        'Unpacking the update...', 'Installing the latest version...', `Removing the old version of the ${type}...`, `${Type} updated successfully.`);
+      lines.push('Disabling Maintenance mode...', 'name\told_version\tnew_version\tstatus',
+        ...todo.map(x => `${x.name}\t${x.version}\t${x.update_version}\tUpdated`), `Success: Updated ${todo.length} of ${todo.length} ${type}s.`);
     }
-    lines.push('Success: Translations are up to date.', `== ${id}: OK`);
+    // wp language core, plugin and theme update, then wp cache flush
+    lines.push(...Array(3).fill('Success: Translations are up to date.'), 'Success: The cache was flushed.', `== ${id}: OK`);
     return lines;
   }
 
@@ -284,7 +290,8 @@
     // An update or a backup, one server after another
     function start(ids, kind = 'update') {
       S.startRun(state, ids, Date.now(), kind);
-      play([...runLines(ids, kind), 'END code=0'], line => { S.runLine(state, line, Date.now()); log(line); changed(); }, finishRun);
+      // lib/run.js prints END on a line of its own, after a blank one
+      play([...runLines(ids, kind), '', 'END code=0'], line => { S.runLine(state, line, Date.now()); log(line); changed(); }, finishRun);
       changed();
     }
 
