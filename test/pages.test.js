@@ -56,3 +56,15 @@ test('each copy box shows exactly what its button copies', () => {
   assert.equal(boxes.length, 2);
   for (const [, shown, copied] of boxes) assert.equal(shown, copied.replace(/&#10;/g, '\n'));
 });
+
+test('the page says where the tool has been tried, and where not yet', () => {
+  assert.match(EN, /Hostinger/);
+  assert.match(EN, /cPanel, SiteGround and VPS aren't tested yet/);
+  assert.match(EN, /mysqldump or mariadb-dump/);
+});
+
+test("the page doesn't say the SSH key lives in the data folder", () => {
+  // With Docker, the only install the page describes, the key is in a Docker volume (compose.yaml)
+  assert.doesNotMatch(EN, /SSH key[^.]*<span class="code-inline">data<\/span> folder/);
+  assert.match(EN, /SSH key[^.]*Docker volume/);
+});
