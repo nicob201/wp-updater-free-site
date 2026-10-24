@@ -270,6 +270,8 @@ dd { margin-top: 4px; color: var(--muted); }
 
 @media (max-width: 900px) {
   .groups { grid-template-columns: minmax(0, 1fr); gap: 40px; }
+  /* One group per row, its entries in two columns: one column reads too wide on tablets */
+  .group dl { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); column-gap: 32px; }
   .band { grid-template-columns: minmax(0, 1fr); padding: 28px; }
 }
 
@@ -282,7 +284,7 @@ dd { margin-top: 4px; color: var(--muted); }
   :root { --gutter: 16px; }
   .sections { display: none; }
   .hero { padding-top: 64px; }
-  .facts { grid-template-columns: minmax(0, 1fr); }
+  .facts, .group dl { grid-template-columns: minmax(0, 1fr); }
   .section { padding-top: 96px; }
   .fine { margin-left: 0; }
 }
