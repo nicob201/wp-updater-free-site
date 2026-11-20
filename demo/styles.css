@@ -150,7 +150,11 @@ a.button { display: inline-flex; align-items: center; text-decoration: none; }
 .site.open { background: var(--open); }
 
 .row { display: flex; align-items: center; gap: 12px; padding-right: 16px; }
-.action { flex: none; width: 96px; display: flex; justify-content: flex-end; }   /* same width with or without a button: statuses stay aligned */
+.action { flex: none; width: 132px; display: flex; align-items: center; justify-content: flex-end; gap: 8px; }   /* same width with or without a button: statuses stay aligned */
+
+.visit { margin-right: auto; display: grid; place-items: center; width: 30px; height: 30px; border-radius: 6px; color: var(--muted); }
+.visit:hover { background: #1a1a1a; color: var(--text); }
+.visit svg { width: 16px; height: 16px; fill: none; stroke: currentColor; stroke-width: 2; stroke-linecap: round; stroke-linejoin: round; }
 
 .toggle {
   flex: 1;
@@ -271,11 +275,17 @@ input[type=checkbox] { width: 16px; height: 16px; margin: 0; accent-color: var(-
   word-break: break-all;
 }
 
+.footer { display: flex; flex-wrap: wrap; justify-content: space-between; gap: 8px 24px; width: min(1032px, calc(100% - 48px)); margin: 0 auto; padding: 20px 0 32px; border-top: 1px solid var(--border); color: var(--dim); font-size: 13px; }
+.footer nav { display: flex; flex-wrap: wrap; gap: 4px 20px; }
+.footer a { color: var(--muted); text-underline-offset: 3px; }
+.footer a:hover { color: var(--text); }
+
 ::-webkit-scrollbar { width: 10px; height: 10px; }
 ::-webkit-scrollbar-thumb { background: #2a2a2a; border-radius: 5px; border: 2px solid var(--bg); }
 
 @media (max-width: 720px) {
   .nav-inner, .page { padding-left: 16px; padding-right: 16px; }
+  .footer { width: calc(100% - 32px); }
   .actions { width: 100%; }
   .actions .button { flex: 1; }
   .toggle { grid-template-columns: minmax(0, 1fr) auto 16px; }
