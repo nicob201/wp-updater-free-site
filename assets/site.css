@@ -1,16 +1,16 @@
-/* The tool's own tokens (demo/styles.css), so the page and the demo inside it read as one thing */
+/* The tool's own tokens (demo/styles.css; GitHub's dark dimmed theme), so the page and the demo inside it read as one thing */
 :root {
   color-scheme: dark;
-  --bg: #000;
-  --surface: #0a0a0a;
-  --raised: #121212;
-  --border: #232323;
-  --border-strong: #333;
-  --text: #ededed;
-  --muted: #a1a1a1;
-  --dim: #666;
-  --blue: #52a8ff;
-  --green: #62c073;
+  --bg: #22272e;
+  --surface: #2d333b;
+  --raised: #373e47;
+  --border: #373e47;
+  --border-strong: #444c56;
+  --text: #cdd9e5;
+  --muted: #909dab;
+  --dim: #768390;
+  --blue: #539bf5;
+  --green: #57ab5a;
   --sans: Geist, system-ui, -apple-system, sans-serif;
   --mono: "Geist Mono", ui-monospace, Menlo, monospace;
   --gutter: 24px;
@@ -67,9 +67,9 @@ svg { width: 16px; height: 16px; flex: none; }
   white-space: nowrap;
   transition: background-color 0.15s, border-color 0.15s;
 }
-.button:hover { background: var(--raised); border-color: #444; }
-.button.primary { background: var(--text); border-color: var(--text); color: #000; }
-.button.primary:hover { background: #fff; border-color: #fff; }
+.button:hover { background: var(--raised); border-color: #545d68; }
+.button.primary { background: var(--text); border-color: var(--text); color: #22272e; }
+.button.primary:hover { background: #e6edf3; border-color: #e6edf3; }
 .button.small { height: 32px; padding: 0 12px; font-size: 14px; }
 .button svg { fill: currentColor; }
 .button .count { color: var(--muted); font-variant-numeric: tabular-nums; }
@@ -83,7 +83,7 @@ svg { width: 16px; height: 16px; flex: none; }
   z-index: 10;
   height: var(--nav);
   border-bottom: 1px solid var(--border);
-  background: rgb(0 0 0 / 0.8);
+  background: rgb(34 39 46 / 0.8);
   -webkit-backdrop-filter: saturate(1.4) blur(12px);
   backdrop-filter: saturate(1.4) blur(12px);
 }
@@ -249,7 +249,7 @@ dd { margin-top: 4px; color: var(--muted); }
 .faq summary::-webkit-details-marker { display: none; }
 .faq summary::after { content: "+" / ""; color: var(--muted); font-weight: 400; }
 .faq details[open] summary::after { content: "−" / ""; }
-.faq summary:hover { color: #fff; }
+.faq summary:hover { color: #e6edf3; }
 .faq details p { max-width: 68ch; padding-bottom: 20px; color: var(--muted); }
 
 /* The last ask */
