@@ -4,9 +4,9 @@
 // by the tool's code, not by an imitation of it. Nothing here reaches a real server or site.
 (() => {
   // The sha256 of the tool's files this bridge re-implements, as they were when it was last compared with them
-  // (v0.2.2). When a release changes one, test/drift.test.js fails: compare, update the bridge, then these
+  // (v0.3.0). When a release changes one, test/drift.test.js fails: compare, update the bridge, then these
   const PORTED_FROM = {
-    'server.js': 'b985233f24ce3f49c0cd759d889b12e261d8ee1dfe429f530c2909efa9a05c94',
+    'server.js': '3151db4cec9062558355869ef35f264023ddd342fbb0354d76c5effd1df2bcf3',
     'updater.sh': '5f894ef7ae71011f454d8a68f954b19f328aa565701f5eedb388f2be1b179e32',
     'lib/backups.js': '19e43a495fac396581703bb0bc4dcd3fe14d020ec7ca0b3d870908fae469fa48',
     'lib/run.js': '01a9a53e9837d3980fb70b621735dd6a50e31994a430225476799d76b76046e1',
@@ -143,6 +143,7 @@
     const state = S.newState();
     state.publicKey = KEY;
     state.hardlinks = true;
+    state.version = '0.3.0';   // the tool's version in demo/version.txt (test/drift.test.js checks they match)
     const clients = new Set();
     let config;
     let listing = [];   // the listings in progress, one per server

@@ -28,6 +28,11 @@ test('the fake sets every state field app.js reads', t => {
     assert.ok(name in fake.state, `app.js reads state.${name}, which the fake never sets`);
 });
 
+test('the version the demo shows is the release in demo/version.txt', t => {
+  t.mock.timers.enable({ apis: ['setTimeout', 'Date'] });
+  assert.equal('v' + createFake({ S, C }).state.version, read('version.txt').trim());
+});
+
 test("a module that requires something the demo doesn't have stops loudly", () => {
   assert.throws(() => run("const util = require('node:util'); module.exports = util.format('x');"), /requires node:util, which the demo doesn't have/);
   assert.match(C.validate({ servers: [{ name: 'New', host: 'new.example', user: 'me' }] }).servers[0].id, /^[a-f0-9]{8}$/);
