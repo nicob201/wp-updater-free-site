@@ -143,7 +143,7 @@
     const state = S.newState();
     state.publicKey = KEY;
     state.hardlinks = true;
-    state.version = '0.3.0';   // the tool's version in demo/version.txt (test/drift.test.js checks they match)
+    state.version = '0.3.1';   // the tool's version in demo/version.txt (test/drift.test.js checks they match)
     const clients = new Set();
     let config;
     let listing = [];   // the listings in progress, one per server
